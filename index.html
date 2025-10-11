@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liturgia Diária App</title>
+    <style>
+        /* --- TEMA E VARIÁVEIS DE COR --- */
+        :root {
+            --cor-fundo: #f4f4f4;
+            --cor-fundo-container: white;
+            --cor-texto-principal: #333;
+            --cor-texto-secundario: #666;
+            --cor-primaria: #8B4513;
+            --cor-borda: #ddd;
+            --cor-sombra: rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] {
+            --cor-fundo: #121212;
+            --cor-fundo-container: #1e1e1e;
+            --cor-texto-principal: #e0e0e0;
+            --cor-texto-secundario: #a0a0a0;
+            --cor-primaria: #a05a2c;
+            --cor-borda: #444;
+            --cor-sombra: rgba(0,0,0,0.4);
+        }
+
+        /* --- ESTILOS GERAIS --- */
+        body { 
+            font-family: sans-serif; 
+            background-color: var(--cor-fundo); 
+            color: var(--cor-texto-principal); 
+            margin: 0; 
+            padding: 20px 0 100px 0; /* Espaço para o rodapé fixo */
+            box-sizing: border-box; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        main.hidden { display: none; }
+
+        #container-liturgia { 
+            background-color: var(--cor-fundo-container);
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px var(--cor-sombra); 
+            width: 90%; 
+            max-width: 800px; 
+            padding: 20px; 
+            box-sizing: border-box; 
+            transition: background-color 0.3s;
+        }
+        .pagina { animation: fadeIn 0.5s; }
+        .pagina.hidden { display: none; }
+        h1, h2, h3 { color: var(--cor-primaria); }
+        h3 { border-bottom: 1px solid var(--cor-borda); padding-bottom: 5px; }
+        p { line-height: 1.6; }
+        .refrao-salmo { font-style: italic; font-weight: bold; margin-bottom: 1em; }
+        
+        #cabecalho { text-align: center; margin-bottom: 20px; width: 90%; max-width: 800px; }
+        #abas-navegacao { border-bottom: 1px solid var(--cor-borda); padding-bottom: 10px; margin-bottom: 10px; }
+        #abas-navegacao ul { list-style: none; padding: 0; margin: 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+        #abas-navegacao li { padding: 8px 15px; cursor: pointer; border-radius: 5px; transition: background-color 0.2s; border-bottom: 3px solid transparent; }
+        #abas-navegacao li:hover { background-color: var(--cor-fundo); }
+        #abas-navegacao li.active { font-weight: bold; color: var(--cor-primaria); border-bottom: 3px solid var(--cor-primaria); }
+
+        #navegacao { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+        #navegacao button { padding: 10px 20px; border: none; background-color: var(--cor-primaria); color: white; border-radius: 5px; cursor: pointer; font-size: 1em; }
+        #navegacao button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #contador-pagina { font-size: 0.9em; color: var(--cor-texto-secundario); }
+        #loading-message { text-align: center; font-style: italic; color: var(--cor-texto-secundario); }
+        
+        /* --- ESTILOS DAS NOVAS SEÇÕES --- */
+        .container-view { background-color: var(--cor-fundo-container); border-radius: 8px; box-shadow: 0 4px 15px var(--cor-sombra); width: 90%; max-width: 800px; padding: 20px; box-sizing: border-box; text-align: center; }
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; margin-bottom: 20px; }
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        /* --- ESTILOS DO RODAPÉ DE NAVEGAÇÃO --- */
+        #rodape-nav { position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--cor-fundo-container); box-shadow: 0 -4px 15px var(--cor-sombra); border-top: 1px solid var(--cor-borda); }
+        #rodape-nav ul { list-style: none; margin: 0; padding: 10px 0; display: flex; justify-content: space-evenly; align-items: center; }
+        #rodape-nav li { cursor: pointer; color: var(--cor-texto-secundario); font-weight: bold; text-align: center; flex-grow: 1; padding: 10px 5px; }
+        #rodape-nav li.active { color: var(--cor-primaria); }
+
+        /* --- ESTILOS DO TOGGLE DE TEMA --- */
+        .theme-switch-wrapper { display: flex; align-items: center; justify-content: space-between; max-width: 250px; margin: 20px auto; }
+        .theme-switch { display: inline-block; height: 34px; position: relative; width: 60px; }
+        .theme-switch input { display: none; }
+        .slider { background-color: #ccc; bottom: 0; cursor: pointer; left: 0; position: absolute; right: 0; top: 0; transition: .4s; }
+        .slider:before { background-color: #fff; bottom: 4px; content: ""; height: 26px; left: 4px; position: absolute; transition: .4s; width: 26px; }
+        input:checked + .slider { background-color: var(--cor-primaria); }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .slider.round { border-radius: 34px; }
+        .slider.round:before { border-radius: 50%; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    
+    <main id="view-liturgia">
+        <header id="cabecalho"></header>
+        <div id="container-liturgia">
+            <div id="conteudo-paginas">
+                <div id="loading-message">Carregando liturgia do dia...</div>
+            </div>
+            <div id="navegacao" class="hidden"> 
+                <button id="btn-anterior">Anterior</button>
+                <span id="contador-pagina"></span>
+                <button id="btn-proximo">Próximo</button>
+            </div>
+        </div>
+    </main>
+
+    <main id="view-catequese" class="hidden">
+        <div class="container-view">
+            <h1>Catequese</h1>
+            <p>Aqui você encontra vídeos para aprofundar sua fé.</p>
+            <div id="videos-container">
+                </div>
+        </div>
+    </main>
+    
+    <main id="view-configuracoes" class="hidden">
+        <div class="container-view">
+            <h1>Configurações</h1>
+            <div id="config-container">
+                </div>
+        </div>
+    </main>
+
+    <footer id="rodape">
+        <nav id="rodape-nav">
+            <ul>
+                <li data-view="view-liturgia" class="active">Liturgia</li>
+                <li data-view="view-catequese">Catequese</li>
+                <li data-view="view-configuracoes">Configurações</li>
+            </ul>
+        </nav>
+    </footer>
+
+    <script>
+        // ==============================================
+        // 1. GERENCIAMENTO DO TEMA (MODO ESCURO)
+        // ==============================================
+        const themeToggle = document.querySelector('#theme-switch-checkbox');
+
+        // Função que aplica o tema no HTML
+        function aplicarTema(tema) {
+            document.documentElement.setAttribute('data-theme', tema);
+            localStorage.setItem('theme', tema);
+        }
+
+        // Verifica se há um tema salvo no storage do navegador
+        const temaSalvo = localStorage.getItem('theme') || 'light';
+        aplicarTema(temaSalvo);
+
+
+        // ==============================================
+        // 2. GERENCIAMENTO DAS VIEWS PRINCIPAIS
+        // ==============================================
+        const mainViews = document.querySelectorAll('main');
+        const rodapeNavItems = document.querySelectorAll('#rodape-nav li');
+
+        function switchMainView(viewId) {
+            // Esconde todas as views principais
+            mainViews.forEach(view => view.classList.add('hidden'));
+            // Mostra apenas a view desejada
+            document.getElementById(viewId).classList.remove('hidden');
+
+            // Atualiza a classe 'active' no rodapé
+            rodapeNavItems.forEach(item => {
+                item.classList.toggle('active', item.dataset.view === viewId);
+            });
+        }
+
+        // Adiciona o evento de clique na navegação do rodapé
+        rodapeNavItems.forEach(item => {
+            item.addEventListener('click', () => {
+                switchMainView(item.dataset.view);
+            });
+        });
+
+
+        // ==============================================
+        // 3. LÓGICA DA VIEW DE LITURGIA
+        // ==============================================
+        async function iniciarAppLiturgia() {
+            const header = document.getElementById('cabecalho');
+            const containerPaginas = document.getElementById('conteudo-paginas');
+            const btnAnterior = document.getElementById('btn-anterior');
+            const btnProximo = document.getElementById('btn-proximo');
+            const contadorPaginaEl = document.getElementById('contador-pagina');
+            const navegacaoEl = document.getElementById('navegacao');
+
+            async function buscarLiturgia() {
+                const url = `https://liturgia.up.railway.app/v2/?date=${new Date().toISOString().slice(0, 10)}`;
+                const loadingMessage = document.getElementById('loading-message');
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`Erro na API: ${response.statusText}`);
+                    const data = await response.json();
+                    loadingMessage.style.display = 'none';
+                    return data;
+                } catch (error) {
+                    console.error("Falha ao buscar dados da liturgia:", error);
+                    loadingMessage.innerHTML = `<p>Não foi possível carregar a liturgia.</p><p><small>${error.message}</small></p>`;
+                    return null;
+                }
+            }
+            
+            const dados = await buscarLiturgia();
+            if (!dados) { return; }
+
+            let paginaAtualHeader = 0;
+            const paginasHeader = [];
+            const titulosPaginasHeader = []; 
+
+            function formatarTextoComQuebras(texto) { return texto.replace(/\n/g, '<br>'); }
+
+            header.innerHTML = `<h1>Liturgia Diária</h1><h2>${dados.data} - ${dados.cor}</h2><p><strong>${dados.liturgia}</strong></p><nav id="abas-navegacao"></nav>`;
+            
+            // ... (A lógica de montar as páginas da liturgia continua a mesma)
+            titulosPaginasHeader.push('Ritos Iniciais');
+            paginasHeader.push(`<div class="pagina"><h3>Antífona de Entrada</h3><p>${dados.antifonas.entrada}</p><h3>Oração da Coleta</h3><p>${dados.oracoes.coleta}</p></div>`);
+            const pLeitura = dados.leituras.primeiraLeitura[0];
+            titulosPaginasHeader.push('1ª Leitura');
+            paginasHeader.push(`<div class="pagina"><h3>${pLeitura.titulo} (${pLeitura.referencia})</h3><p>${pLeitura.texto}</p></div>`);
+            const salmo = dados.leituras.salmo[0];
+            titulosPaginasHeader.push('Salmo');
+            paginasHeader.push(`<div class="pagina"><h3>Salmo (${salmo.referencia})</h3><p class="refrao-salmo">R.: ${salmo.refrao}</p><p>${formatarTextoComQuebras(salmo.texto)}</p></div>`);
+            if (dados.leituras.segundaLeitura.length > 0) {
+                const sLeitura = dados.leituras.segundaLeitura[0];
+                titulosPaginasHeader.push('2ª Leitura');
+                paginasHeader.push(`<div class="pagina"><h3>${sLeitura.titulo} (${sLeitura.referencia})</h3><p>${sLeitura.texto}</p></div>`);
+            }
+            const evangelho = dados.leituras.evangelho[0];
+            titulosPaginasHeader.push('Evangelho');
+            paginasHeader.push(`<div class="pagina"><h3>${evangelho.titulo} (${evangelho.referencia})</h3><p>${evangelho.texto}</p></div>`);
+            titulosPaginasHeader.push('Ritos Finais');
+            paginasHeader.push(`<div class="pagina"><h3>Oração sobre as Oferendas</h3><p>${dados.oracoes.oferendas}</p><h3>Antífona da Comunhão</h3><p>${dados.antifonas.comunhao}</p><h3>Oração depois da Comunhão</h3><p>${dados.oracoes.comunhao}</p></div>`);
+
+            const abasContainer = document.getElementById('abas-navegacao');
+
+            function montarAbas() {
+                const listaAbasHTML = titulosPaginasHeader.map((titulo, index) => `<li data-index="${index}">${titulo}</li>`).join('');
+                abasContainer.innerHTML = `<ul>${listaAbasHTML}</ul>`;
+            }
+
+            function renderizarPagina() {
+                containerPaginas.innerHTML = paginasHeader.join('');
+                const paginasEls = containerPaginas.querySelectorAll('.pagina');
+                paginasEls.forEach((paginasHeader, index) => {
+                    paginasHeader.classList.toggle('hidden', index !== paginaAtualHeader);
+                });
+                const abasLis = abasContainer.querySelectorAll('li');
+                abasLis.forEach((aba, index) => {
+                    aba.classList.toggle('active', index === paginaAtualHeader);
+                });
+                contadorPaginaEl.textContent = `Página ${paginaAtualHeader + 1} de ${paginasHeader.length}`;
+                btnAnterior.disabled = (paginaAtualHeader === 0);
+                btnProximo.disabled = (paginaAtualHeader === paginasHeader.length - 1);
+            }
+
+            abasContainer.addEventListener('click', (event) => {
+                if (event.target.tagName === 'LI') {
+                    const indexClicado = parseInt(event.target.dataset.index);
+                    if (indexClicado !== paginaAtualHeader) {
+                        paginaAtualHeader = indexClicado;
+                        renderizarPagina();
+                    }
+                }
+            });
+
+            btnProximo.addEventListener('click', () => {
+                if (paginaAtualHeader < paginasHeader.length - 1) { paginaAtualHeader++; renderizarPagina(); }
+            });
+            btnAnterior.addEventListener('click', () => {
+                if (paginaAtualHeader > 0) { paginaAtualHeader--; renderizarPagina(); }
+            });
+
+            montarAbas();
+            navegacaoEl.classList.remove('hidden');
+            renderizarPagina();
+        }
+
+
+        // ==============================================
+        // 4. LÓGICA DA VIEW DE CATEQUESE
+        // ==============================================
+        function renderizarCatequeseView() {
+            const videosContainer = document.getElementById('videos-container');
+            const videos = [
+                {  videoId: 'videoseries?si=POFspCvSDSpF1fDb&amp;list=PLHklNC5Otp0GH-kse-kO7fwCz56CaIMHf' },
+                {  videoId: 'https://youtube.com/playlist?list=PLIzN8slUYnoWz1uJ-ddw6jbRfdEqjyYaI&si=KxNzoNelETlKWrdx' },
+                {  videoId: 'https://youtube.com/playlist?list=PLxGNjsM-EhKrusGvKShCYqsQkAZOoDwYa&si=fc91ZBa87HxRmth2' }
+            ];
+
+            let htmlVideos = '';
+            videos.forEach(video => {
+                htmlVideos += `
+                    <div class="video-container">
+                        <iframe src="https://www.youtube.com/embed/${video.videoId}" " 
+                        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; 
+                        gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                `;
+            });
+            videosContainer.innerHTML = htmlVideos;
+        }
+
+
+        // ==============================================
+        // 5. LÓGICA DA VIEW DE CONFIGURAÇÕES
+        // ==============================================
+        function renderizarConfiguracoesView() {
+            const configContainer = document.getElementById('config-container');
+            configContainer.innerHTML = `
+                <div class="theme-switch-wrapper">
+                    <span>Modo Escuro</span>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="theme-switch-checkbox">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            `;
+            
+            // Adiciona o evento de clique ao toggle
+            const themeCheckbox = document.getElementById('theme-switch-checkbox');
+            // Sincroniza o checkbox com o tema salvo
+            themeCheckbox.checked = (localStorage.getItem('theme') === 'dark');
+            
+            themeCheckbox.addEventListener('change', (event) => {
+                const novoTema = event.target.checked ? 'dark' : 'light';
+                aplicarTema(novoTema);
+            });
+        }
+
+
+        // ==============================================
+        // 6. INICIALIZAÇÃO GERAL DO APP
+        // ==============================================
+        iniciarAppLiturgia();
+        renderizarCatequeseView();
+        renderizarConfiguracoesView();
+        switchMainView('view-liturgia'); // Define a view inicial
+
+    </script>
+</body>
+</html>
