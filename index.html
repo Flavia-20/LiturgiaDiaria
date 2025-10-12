@@ -98,6 +98,22 @@
         .slider.round:before { border-radius: 50%; }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- ESTILOS PARA O BOTÃO DE ÁUDIO --- */
+        #btn-audio { 
+            background-color: #4CAF50;  
+            margin: 0 5px;  
+        }
+        #btn-audio:hover { 
+            background-color: #45a049; 
+        }
+        #btn-audio.stopping { 
+            background-color: #f44336;  
+        }
+        #btn-audio.stopping:hover { 
+            background-color: #da190b; 
+        }
+
     </style>
 </head>
 <body>
@@ -109,9 +125,11 @@
                 <div id="loading-message">Carregando liturgia do dia...</div>
             </div>
             <div id="navegacao" class="hidden"> 
-                <button id="btn-anterior">Anterior</button>
-                <span id="contador-pagina"></span>
-                <button id="btn-proximo">Próximo</button>
+            <button id="btn-anterior">Anterior</button>
+            <span id="contador-pagina"></span>
+            <button id="btn-audio" title="Ouvir página atual">🔊 Ouvir</button>  <!-- ADICIONADO AQUI -->
+            <button id="btn-proximo">Próximo</button>
+        
             </div>
         </div>
     </main>
@@ -159,6 +177,121 @@
         const temaSalvo = localStorage.getItem('theme') || 'light';
         aplicarTema(temaSalvo);
 
+        // ==============================================
+        // VARIÁVEIS GLOBAIS PARA ÁUDIO 
+        // ==============================================
+        let synthesis = window.speechSynthesis;
+        let currentUtterance = null;
+        let isSpeaking = false;
+
+        // ==============================================
+        // FUNÇÃO GLOBAL PARA PARAR O ÁUDIO
+        // ==============================================
+        function pararAudio() {
+            if (isSpeaking && synthesis.speaking) {
+                synthesis.cancel();
+            }
+            isSpeaking = false;
+            const btnAudio = document.getElementById('btn-audio');
+            if (btnAudio) {
+                btnAudio.textContent = '🔊 Ouvir';
+                btnAudio.classList.remove('stopping');
+            }
+        }
+
+        // ==============================================
+        // FUNÇÃO PARA INICIALIZAR ÁUDIO DE ACESSIBILIDADE 
+        // ==============================================
+        function iniciarAudioAcessibilidade() {
+            const btnAudio = document.getElementById('btn-audio');
+
+            if (!synthesis) {
+                btnAudio.style.display = 'none';
+                console.warn('SpeechSynthesis não suportada neste navegador.');
+                return;
+            }
+
+            function configurarVoz() {
+                const voices = synthesis.getVoices();
+                const ptVoice = voices.find(voice => voice.lang.includes('pt-BR')) || voices.find(voice => voice.lang.includes('pt')) || voices[0];
+                if (currentUtterance) {
+                    currentUtterance.voice = ptVoice;
+                    currentUtterance.rate = 0.9;
+                    currentUtterance.pitch = 1;
+                }
+            }
+
+            if (synthesis.getVoices().length === 0) {
+                synthesis.onvoiceschanged = configurarVoz;
+            } else {
+                configurarVoz();
+            }
+
+            function lerPaginaAtual() {
+                const paginaAtualEl = document.querySelector('.pagina:not(.hidden)');
+                if (!paginaAtualEl) return;
+
+                const texto = paginaAtualEl.innerText || paginaAtualEl.textContent;
+                if (!texto.trim()) return;
+
+                pararAudio();
+
+                currentUtterance = new SpeechSynthesisUtterance(texto);
+                currentUtterance.lang = 'pt-BR';
+                currentUtterance.rate = 0.9;
+                currentUtterance.pitch = 1;
+                currentUtterance.volume = 1;
+
+                currentUtterance.onstart = () => {
+                    isSpeaking = true;
+                    btnAudio.textContent = '⏹ Parar';
+                    btnAudio.classList.add('stopping');
+                };
+
+                currentUtterance.onend = () => {
+                    isSpeaking = false;
+                    btnAudio.textContent = '🔊 Ouvir';
+                    btnAudio.classList.remove('stopping');
+                };
+
+                currentUtterance.onerror = (event) => {
+                    console.error('Erro na síntese de voz:', event.error);
+                    isSpeaking = false;
+                    btnAudio.textContent = '🔊 Ouvir';
+                    btnAudio.classList.remove('stopping');
+                };
+
+                synthesis.speak(currentUtterance);
+            }
+
+            btnAudio.addEventListener('click', () => {
+                if (isSpeaking) {
+                    pararAudio();
+                } else {
+                    lerPaginaAtual();
+                }
+            });
+
+            const btnAnterior = document.getElementById('btn-anterior');
+            const btnProximo = document.getElementById('btn-proximo');
+            const abasContainer = document.getElementById('abas-navegacao');
+
+            function pararAudioAoMudarPagina() {
+                pararAudio();
+            }
+
+            if (btnAnterior) btnAnterior.addEventListener('click', pararAudioAoMudarPagina);
+            if (btnProximo) btnProximo.addEventListener('click', pararAudioAoMudarPagina);
+            if (abasContainer) {
+                abasContainer.addEventListener('click', (event) => {
+                    if (event.target.tagName === 'LI') {
+                        pararAudioAoMudarPagina();
+                    }
+                });
+            }
+        }
+
+
 
         // ==============================================
         // 2. GERENCIAMENTO DAS VIEWS PRINCIPAIS
@@ -176,6 +309,8 @@
             rodapeNavItems.forEach(item => {
                 item.classList.toggle('active', item.dataset.view === viewId);
             });
+            // Para a leitura de áudio se mudando de view
+            pararAudio();
         }
 
         // Adiciona o evento de clique na navegação do rodapé
@@ -286,6 +421,7 @@
             montarAbas();
             navegacaoEl.classList.remove('hidden');
             renderizarPagina();
+            iniciarAudioAcessibilidade();
         }
 
 
