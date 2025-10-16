@@ -1,579 +1,254 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Liturgia Diária - App</title>
-
-  <!-- Tailwind (CDN) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
-  <style>
-    /* ---------------------------
-       CSS VARS: cores dinâmicas (serão atualizadas por JS)
-       --------------------------- */
-    :root{
-      --cor-fundo: #f4f4f4;
-      --cor-fundo-container: #ffffff;
-      --cor-primaria: #8B4513;
-      --cor-texto: #111827;
-      --cor-secundaria: #6b7280;
-      --cor-borda: #e5e7eb;
-      --cor-sombra: rgba(0,0,0,0.08);
-      --btn-bg: var(--cor-primaria);
-      --btn-text: #ffffff;
-    }
-
-    /* preferências do sistema (modo escuro automático) */
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --cor-fundo: #0b1220;
-        --cor-fundo-container: #0f1724;
-        --cor-primaria: #9a7b4f;
-        --cor-texto: #e6eef8;
-        --cor-secundaria: #9aa4b2;
-        --cor-borda: #1f2937;
-        --cor-sombra: rgba(2,6,23,0.6);
-        --btn-bg: var(--cor-primaria);
-        --btn-text: #0b1220;
-      }
-    }
-
-    /* classes utilitárias extras (além do Tailwind) */
-    html,body { height: 100%; }
-    body {
-      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background: var(--cor-fundo);
-      color: var(--cor-texto);
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      transition: background-color 0.45s ease, color 0.45s ease;
-      margin: 0;
-      padding-bottom: 110px; /* espaço para rodapé fixo */
-    }
-
-    .container-card {
-      background: var(--cor-fundo-container);
-      border-radius: 12px;
-      box-shadow: 0 8px 30px var(--cor-sombra);
-      border: 1px solid var(--cor-borda);
-      transition: background 0.45s ease, border-color 0.45s ease;
-    }
-
-    /* destaque litúrgico: borda colorida no lado esquerdo */
-    .liturgic-accent {
-      border-left: 6px solid var(--cor-primaria);
-    }
-
-    h1,h2,h3 { font-family: "Playfair Display", serif; color: var(--cor-primaria); }
-
-    /* botão principal tem cor dinâmica */
-    .btn-primary {
-      background: var(--btn-bg);
-      color: var(--btn-text);
-      border-radius: 8px;
-      transition: background 0.35s ease, transform 0.08s ease;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-    }
-    .btn-primary:active { transform: translateY(1px); }
-
-    /* toggle tema (estilo original mantido com pequenas melhorias) */
-    .theme-switch { display:inline-block; height: 34px; position: relative; width: 60px; vertical-align:middle; }
-    .theme-switch input { display:none; }
-    .slider {
-      background-color: #ccc;
-      bottom: 0; cursor:pointer; left: 0; position: absolute; right: 0; top: 0; transition: .4s;
-      border-radius: 999px;
-    }
-    .slider:before {
-      background-color: #fff; bottom: 4px; content: ""; height: 26px; left: 4px; position: absolute; transition: .4s; width: 26px; border-radius:50%;
-    }
-    input:checked + .slider { background-color: var(--cor-primaria); }
-    input:checked + .slider:before { transform: translateX(26px); }
-
-    /* pagina fadein */
-    @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
-    .pagina { animation: fadeIn 0.45s; }
-
-    /* footer fixo */
-    footer#rodape { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liturgia Diária App</title>
+<style>
+:root {
+    --cor-fundo: #f4f4f4;
+    --cor-fundo-container: #fff;
+    --cor-texto-principal: #333;
+    --cor-texto-secundario: #666;
+    --cor-primaria: #8B4513;
+    --cor-borda: #ddd;
+    --cor-sombra: rgba(0,0,0,0.1);
+    --cor-botao-hover: #A0522D;
+}
+[data-theme="dark"] {
+    --cor-fundo: #121212;
+    --cor-fundo-container: #1e1e1e;
+    --cor-texto-principal: #e0e0e0;
+    --cor-texto-secundario: #a0a0a0;
+    --cor-primaria: #a05a2c;
+    --cor-borda: #444;
+    --cor-sombra: rgba(0,0,0,0.4);
+    --cor-botao-hover: #d2691e;
+}
+body { background-color: var(--cor-fundo); color: var(--cor-texto-principal); font-family:sans-serif; margin:0; padding:20px 0 100px 0; transition: background-color 0.3s, color 0.3s; }
+main { display:flex; flex-direction:column; align-items:center; width:100%; }
+main.hidden { display:none; }
+#container-liturgia { background-color: var(--cor-fundo-container); border-radius:8px; box-shadow:0 4px 15px var(--cor-sombra); width:90%; max-width:800px; padding:20px; box-sizing:border-box; transition: background-color 0.3s; }
+.pagina { animation: fadeIn 0.5s; }
+.pagina.hidden { display:none; }
+h1,h2,h3 { color: var(--cor-primaria); }
+h3 { border-bottom:1px solid var(--cor-borda); padding-bottom:5px; }
+p { line-height:1.6; }
+.refrao-salmo { font-style:italic; font-weight:bold; margin-bottom:1em; }
+#cabecalho { text-align:center; margin-bottom:20px; width:90%; max-width:800px; }
+#abas-navegacao { border-bottom:1px solid var(--cor-borda); padding-bottom:10px; margin-bottom:10px; }
+#abas-navegacao ul { list-style:none; padding:0; margin:0; display:flex; justify-content:center; flex-wrap:wrap; gap:10px; }
+#abas-navegacao li { padding:8px 15px; cursor:pointer; border-radius:5px; transition: background-color 0.2s; border-bottom:3px solid transparent; }
+#abas-navegacao li:hover { background-color: var(--cor-botao-hover); color:white; }
+#abas-navegacao li.active { font-weight:bold; color: var(--cor-primaria); border-bottom:3px solid var(--cor-primaria); }
+#navegacao { display:flex; justify-content:space-between; align-items:center; margin-top:20px; }
+#navegacao button { padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-size:1em; color:white; background-color: var(--cor-primaria); transition: background-color 0.2s; }
+#navegacao button:hover:not(:disabled) { background-color: var(--cor-botao-hover); }
+#navegacao button:disabled { background-color:#ccc; cursor:not-allowed; }
+#contador-pagina { font-size:0.9em; color: var(--cor-texto-secundario); }
+#loading-message { text-align:center; font-style:italic; color: var(--cor-texto-secundario); }
+.container-view { background-color: var(--cor-fundo-container); border-radius:8px; box-shadow:0 4px 15px var(--cor-sombra); width:90%; max-width:800px; padding:20px; box-sizing:border-box; text-align:center; }
+.video-container { position:relative; padding-bottom:56.25%; height:0; overflow:hidden; max-width:100%; background:#000; margin-bottom:20px; }
+.video-container iframe { position:absolute; top:0; left:0; width:100%; height:100%; }
+#rodape-nav { position:fixed; bottom:0; left:0; width:100%; background-color: var(--cor-fundo-container); box-shadow:0 -4px 15px var(--cor-sombra); border-top:1px solid var(--cor-borda); }
+#rodape-nav ul { list-style:none; margin:0; padding:10px 0; display:flex; justify-content:space-evenly; align-items:center; }
+#rodape-nav li { cursor:pointer; color: var(--cor-texto-secundario); font-weight:bold; text-align:center; flex-grow:1; padding:10px 5px; }
+#rodape-nav li.active { color: var(--cor-primaria); }
+.theme-switch-wrapper { display:flex; align-items:center; justify-content:space-between; max-width:250px; margin:20px auto; }
+.theme-switch { display:inline-block; height:34px; position:relative; width:60px; }
+.theme-switch input { display:none; }
+.slider { background-color:#ccc; bottom:0; cursor:pointer; left:0; position:absolute; right:0; top:0; transition:.4s; }
+.slider:before { background-color:#fff; bottom:4px; content:""; height:26px; left:4px; position:absolute; transition:.4s; width:26px; }
+input:checked + .slider { background-color: var(--cor-primaria); }
+input:checked + .slider:before { transform:translateX(26px); }
+.slider.round { border-radius:34px; }
+.slider.round:before { border-radius:50%; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+#btn-audio { margin:0 5px; }
+#btn-audio.stopping { background-color:#f44336; }
+</style>
 </head>
 <body>
-  <!-- CABEÇALHO -->
-  <div class="max-w-4xl mx-auto px-4 pt-6">
-    <header id="cabecalho" class="text-center mb-6">
-      <!-- preenchido por JS -->
-    </header>
-  </div>
 
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main class="max-w-4xl mx-auto px-4">
-    <div id="container-liturgia" class="container-card p-6">
-      <div id="conteudo-paginas">
-        <div id="loading-message" class="text-center text-sm text-gray-500">Carregando liturgia do dia...</div>
-      </div>
+<main id="view-liturgia">
+<header id="cabecalho"></header>
+<div id="container-liturgia">
+<div id="conteudo-paginas"><div id="loading-message">Carregando liturgia do dia...</div></div>
+<div id="navegacao" class="hidden">
+<button id="btn-anterior">Anterior</button>
+<span id="contador-pagina"></span>
+<button id="btn-audio" title="Ouvir página atual">🔊 Ouvir</button>
+<button id="btn-proximo">Próximo</button>
+</div>
+</div>
+</main>
 
-      <div id="navegacao" class="hidden mt-6 flex items-center justify-between">
-        <button id="btn-anterior" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Anterior</button>
-        <div class="text-sm text-gray-500" id="contador-pagina"></div>
-        <div class="flex items-center gap-2">
-          <button id="btn-audio" title="Ouvir página atual" class="px-3 py-2 rounded-md text-sm" style="background: #4CAF50; color:white">🔊 Ouvir</button>
-          <button id="btn-proximo" class="btn-primary px-4 py-2 text-sm font-medium rounded-md">Próximo</button>
-        </div>
-      </div>
-    </div>
-  </main>
+<main id="view-catequese" class="hidden">
+<div class="container-view">
+<h1>Catequese</h1>
+<p>Aqui você encontra vídeos para aprofundar sua fé.</p>
+<div id="videos-container"></div>
+</div>
+</main>
 
-  <!-- VIEWS ADICIONAIS (catequese, configurações) -->
-  <main id="view-catequese" class="max-w-4xl mx-auto px-4 mt-6 hidden">
-    <div class="container-card p-6">
-      <h1 class="text-2xl mb-2">Catequese</h1>
-      <p class="mb-4 text-sm text-gray-500">Aprofunde sua fé com vídeos selecionados.</p>
-      <div id="videos-container"></div>
-    </div>
-  </main>
+<main id="view-configuracoes" class="hidden">
+<div class="container-view">
+<h1>Configurações</h1>
+<div id="config-container"></div>
+</div>
+</main>
 
-  <main id="view-configuracoes" class="max-w-4xl mx-auto px-4 mt-6 hidden">
-    <div class="container-card p-6">
-      <h1 class="text-2xl mb-3">Configurações</h1>
-      <div id="config-container"></div>
-    </div>
-  </main>
+<footer id="rodape">
+<nav id="rodape-nav">
+<ul>
+<li data-view="view-liturgia" class="active">Liturgia</li>
+<li data-view="view-catequese">Catequese</li>
+<li data-view="view-configuracoes">Configurações</li>
+</ul>
+</nav>
+</footer>
 
-  <!-- FOOTER / RODAPÉ (navegação) -->
-  <footer id="rodape" class="bg-white/60 backdrop-blur-sm border-t border-gray-200">
-    <nav id="rodape-nav" class="max-w-4xl mx-auto px-4">
-      <ul class="flex justify-between items-center gap-2 py-3">
-        <li data-view="view-liturgia" class="flex-1 text-center font-semibold cursor-pointer nav-item active">Liturgia</li>
-        <li data-view="view-catequese" class="flex-1 text-center font-semibold cursor-pointer nav-item">Catequese</li>
-        <li data-view="view-configuracoes" class="flex-1 text-center font-semibold cursor-pointer nav-item">Configurações</li>
-      </ul>
-    </nav>
-  </footer>
+<script>
+// COR LITURGICA COM CONTRASTE ADEQUADO
+function getCorLiturgica(cor){
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    switch(cor.toLowerCase()){
+        case'verde': return isDark ? '#00AA00' : '#007700';
+        case'roxo': return isDark ? '#9370DB' : '#4B0082';
+        case'branco': return isDark ? '#E8E8E8' : '#DCDCDC'; // Gainsboro - branco com leve tom de cinza
+        case'vermelho': return isDark ? '#DC143C' : '#B22222';
+        case'rosa': return isDark ? '#FF69B4' : '#C71585';
+        case'preto': return isDark ? '#888888' : '#2C2C2C'; // Cinza visível em ambos os modos
+        case'marrom': return isDark ? '#A0522D' : '#8B4513';
+        default: return isDark ? '#A0522D' : '#8B4513';
+    }
+}
 
-  <script>
-    // ======================
-    // UTIL: cálculo da Páscoa (algoritmo de Meeus) - retorna Date de Páscoa (domingo)
-    // ======================
-    function calcularPascoaGregorian(year) {
-      // Algoritmo de Anonymous Gregorian (Meeus)
-      const a = year % 19;
-      const b = Math.floor(year / 100);
-      const c = year % 100;
-      const d = Math.floor(b / 4);
-      const e = b % 4;
-      const f = Math.floor((b + 8) / 25);
-      const g = Math.floor((b - f + 1) / 3);
-      const h = (19 * a + b - d - g + 15) % 30;
-      const i = Math.floor(c / 4);
-      const k = c % 4;
-      const l = (32 + 2 * e + 2 * i - h - k) % 7;
-      const m = Math.floor((a + 11 * h + 22 * l) / 451);
-      const month = Math.floor((h + l - 7 * m + 114) / 31);
-      const day = ((h + l - 7 * m + 114) % 31) + 1;
-      return new Date(year, month - 1, day);
+// MODO ESCURO
+function aplicarTema(tema){
+    document.documentElement.setAttribute('data-theme',tema);
+    localStorage.setItem('theme',tema);
+    // Reaplica cor litúrgica quando mudar tema
+    const corAtual = window.corLiturgicaAtual;
+    if(corAtual){
+        const novaCor = getCorLiturgica(corAtual);
+        document.documentElement.style.setProperty('--cor-primaria',novaCor);
+        document.documentElement.style.setProperty('--cor-botao-hover',novaCor);
+    }
+}
+const temaSalvo=localStorage.getItem('theme')||'light';
+aplicarTema(temaSalvo);
+
+// FUNÇÕES DE ÁUDIO
+let synthesis=window.speechSynthesis;let currentUtterance=null;let isSpeaking=false;
+function pararAudio(){if(isSpeaking&&synthesis.speaking)synthesis.cancel();isSpeaking=false;const btnAudio=document.getElementById('btn-audio');if(btnAudio){btnAudio.textContent='🔊 Ouvir';btnAudio.classList.remove('stopping');}}
+function iniciarAudioAcessibilidade(){const btnAudio=document.getElementById('btn-audio');if(!synthesis){btnAudio.style.display='none';return;}
+function configurarVoz(){const voices=synthesis.getVoices();const ptVoice=voices.find(v=>v.lang.includes('pt-BR'))||voices[0];if(currentUtterance){currentUtterance.voice=ptVoice;currentUtterance.rate=0.9;currentUtterance.pitch=1;}}
+if(synthesis.getVoices().length===0)synthesis.onvoiceschanged=configurarVoz;else configurarVoz();
+function lerPaginaAtual(){const paginaAtualEl=document.querySelector('.pagina:not(.hidden)');if(!paginaAtualEl)return;const texto=paginaAtualEl.innerText||paginaAtualEl.textContent;if(!texto.trim())return;pararAudio();currentUtterance=new SpeechSynthesisUtterance(texto);currentUtterance.lang='pt-BR';currentUtterance.rate=0.9;currentUtterance.pitch=1;currentUtterance.volume=1;currentUtterance.onstart=()=>{isSpeaking=true;btnAudio.textContent='⏹ Parar';btnAudio.classList.add('stopping');};currentUtterance.onend=()=>{isSpeaking=false;btnAudio.textContent='🔊 Ouvir';btnAudio.classList.remove('stopping');};currentUtterance.onerror=()=>{isSpeaking=false;btnAudio.textContent='🔊 Ouvir';btnAudio.classList.remove('stopping');};synthesis.speak(currentUtterance);}
+btnAudio.addEventListener('click',()=>{if(isSpeaking)pararAudio();else lerPaginaAtual();});}
+
+// VIEW SWITCH
+const mainViews=document.querySelectorAll('main');const rodapeNavItems=document.querySelectorAll('#rodape-nav li');
+function switchMainView(viewId){mainViews.forEach(v=>v.classList.add('hidden'));document.getElementById(viewId).classList.remove('hidden');rodapeNavItems.forEach(i=>i.classList.toggle('active',i.dataset.view===viewId));pararAudio();}
+rodapeNavItems.forEach(i=>i.addEventListener('click',()=>switchMainView(i.dataset.view)));
+
+// LITURGIA
+async function iniciarAppLiturgia(){
+    const header=document.getElementById('cabecalho');
+    const containerPaginas=document.getElementById('conteudo-paginas');
+    const btnAnterior=document.getElementById('btn-anterior');
+    const btnProximo=document.getElementById('btn-proximo');
+    const contadorPaginaEl=document.getElementById('contador-pagina');
+    const navegacaoEl=document.getElementById('navegacao');
+
+    async function buscarLiturgia(){
+        const url=`https://liturgia.up.railway.app/v2/?date=${new Date().toISOString().slice(0,10)}`;
+        const loadingMessage=document.getElementById('loading-message');
+        try{
+            const resp=await fetch(url);
+            if(!resp.ok)throw new Error(`Erro na API: ${resp.statusText}`);
+            const data=await resp.json();
+            loadingMessage.style.display='none';
+            return data;
+        }catch(e){console.error(e);loadingMessage.innerHTML=`<p>Não foi possível carregar a liturgia.</p><p><small>${e.message}</small></p>`;return null;}
     }
 
-    // ======================
-    // Mapa de cores litúrgicas (valores harmoniosos)
-    // ======================
-    const coresLiturgicas = {
-      verde: { fundo: "#f0fff4", primaria: "#2e8b57", texto: "#0b3d2f", card: "#ffffff", btnText: "#ffffff" },
-      roxo: { fundo: "#fcf7ff", primaria: "#6a0dad", texto: "#3b0a57", card: "#ffffff", btnText: "#ffffff" },
-      violeta: { fundo: "#fcf7ff", primaria: "#6a0dad", texto: "#3b0a57", card: "#ffffff", btnText: "#ffffff" },
-      branco: { fundo: "#ffffff", primaria: "#b1862f", texto: "#111827", card: "#ffffff", btnText: "#111827" },
-      vermelho: { fundo: "#fff5f5", primaria: "#b22222", texto: "#400000", card: "#ffffff", btnText: "#ffffff" },
-      rosa: { fundo: "#fff6f8", primaria: "#ff8da1", texto: "#7a2f3f", card: "#ffffff", btnText: "#111827" },
-      preto: { fundo: "#0b0b0b", primaria: "#000000", texto: "#f5f5f5", card: "#0f1112", btnText: "#f5f5f5" },
-      padrao: { fundo: "#f4f4f7", primaria: "#8B4513", texto: "#111827", card: "#ffffff", btnText: "#ffffff" }
-    };
+    const dados=await buscarLiturgia();
+    if(!dados)return;
 
-    // aplica tema global alterando CSS variables
-    function aplicarTemaLiturgico(corKey) {
-      const tema = coresLiturgicas[(corKey || "").toLowerCase()] || coresLiturgicas["padrao"];
-      document.documentElement.style.setProperty('--cor-fundo', tema.fundo);
-      document.documentElement.style.setProperty('--cor-fundo-container', tema.card);
-      document.documentElement.style.setProperty('--cor-primaria', tema.primaria);
-      document.documentElement.style.setProperty('--cor-texto', tema.texto);
-      document.documentElement.style.setProperty('--cor-secundaria', '#6b7280');
-      document.documentElement.style.setProperty('--cor-borda', '#e5e7eb');
-      document.documentElement.style.setProperty('--cor-sombra', 'rgba(2,6,23,0.06)');
-      document.documentElement.style.setProperty('--btn-bg', tema.primaria);
-      document.documentElement.style.setProperty('--btn-text', tema.btnText || '#fff');
+    window.corLiturgicaAtual = dados.cor; // Salva para reuso ao trocar tema
+    const corLiturgica=getCorLiturgica(dados.cor);
+    document.documentElement.style.setProperty('--cor-primaria',corLiturgica);
+    document.documentElement.style.setProperty('--cor-botao-hover',corLiturgica);
 
-      // também atualiza inline alguns elementos (se quiser comportamento adicional)
-      // atualiza borda de destaque de cards dinamicamente:
-      const cards = document.querySelectorAll('.liturgic-accent');
-      cards.forEach(c => c.style.borderLeftColor = tema.primaria);
+    let paginaAtualHeader=0;const paginasHeader=[];const titulosPaginasHeader=[];
+    function formatarTextoComQuebras(texto){return texto.replace(/\n/g,'<br>');}
+
+    header.innerHTML=`<h1>Liturgia Diária</h1><h2>${dados.data} - ${dados.cor}</h2><p><strong>${dados.liturgia}</strong></p><nav id="abas-navegacao"></nav>`;
+
+    titulosPaginasHeader.push('Ritos Iniciais');
+    paginasHeader.push(`<div class="pagina"><h3>Antífona de Entrada</h3><p>${dados.antifonas.entrada}</p><h3>Oração da Coleta</h3><p>${dados.oracoes.coleta}</p></div>`);
+    const pLeitura=dados.leituras.primeiraLeitura[0];
+    titulosPaginasHeader.push('1ª Leitura');
+    paginasHeader.push(`<div class="pagina"><h3>${pLeitura.titulo} (${pLeitura.referencia})</h3><p>${pLeitura.texto}</p></div>`);
+    const salmo=dados.leituras.salmo[0];
+    titulosPaginasHeader.push('Salmo');
+    paginasHeader.push(`<div class="pagina"><h3>Salmo (${salmo.referencia})</h3><p class="refrao-salmo">R.: ${salmo.refrao}</p><p>${formatarTextoComQuebras(salmo.texto)}</p></div>`);
+    if(dados.leituras.segundaLeitura.length>0){const sLeitura=dados.leituras.segundaLeitura[0];titulosPaginasHeader.push('2ª Leitura');paginasHeader.push(`<div class="pagina"><h3>${sLeitura.titulo} (${sLeitura.referencia})</h3><p>${sLeitura.texto}</p></div>`);}
+    const evangelho=dados.leituras.evangelho[0];titulosPaginasHeader.push('Evangelho');paginasHeader.push(`<div class="pagina"><h3>${evangelho.titulo} (${evangelho.referencia})</h3><p>${evangelho.texto}</p></div>`);
+    titulosPaginasHeader.push('Ritos Finais');paginasHeader.push(`<div class="pagina"><h3>Oração sobre as Oferendas</h3><p>${dados.oracoes.oferendas}</p><h3>Antífona da Comunhão</h3><p>${dados.antifonas.comunhao}</p><h3>Oração depois da Comunhão</h3><p>${dados.oracoes.comunhao}</p></div>`);
+
+    const abasContainer=document.getElementById('abas-navegacao');
+    function montarAbas(){abasContainer.innerHTML=`<ul>${titulosPaginasHeader.map((t,i)=>`<li data-index="${i}">${t}</li>`).join('')}</ul>`;}
+    function renderizarPagina(){
+        containerPaginas.innerHTML=paginasHeader.join('');
+        const paginasEls=containerPaginas.querySelectorAll('.pagina');
+        paginasEls.forEach((pag,i)=>pag.classList.toggle('hidden',i!==paginaAtualHeader));
+        const abasLis=abasContainer.querySelectorAll('li');abasLis.forEach((aba,i)=>aba.classList.toggle('active',i===paginaAtualHeader));
+        contadorPaginaEl.textContent=`Página ${paginaAtualHeader+1} de ${paginasHeader.length}`;
+        btnAnterior.disabled=(paginaAtualHeader===0);
+        btnProximo.disabled=(paginaAtualHeader===paginasHeader.length-1);
     }
+    abasContainer.addEventListener('click',e=>{if(e.target.tagName==='LI'){paginaAtualHeader=parseInt(e.target.dataset.index);renderizarPagina();}});
+    btnProximo.addEventListener('click',()=>{if(paginaAtualHeader<paginasHeader.length-1){paginaAtualHeader++;renderizarPagina();}});
+    btnAnterior.addEventListener('click',()=>{if(paginaAtualHeader>0){paginaAtualHeader--;renderizarPagina();}});
+    montarAbas();navegacaoEl.classList.remove('hidden');renderizarPagina();iniciarAudioAcessibilidade();
+}
 
-    // ======================
-    // Calendário litúrgico (determinador de cor quando API não retornar)
-    // Algoritmo razoavelmente completo:
-    // - calcula Páscoa -> define Quaresma (Quarta-feira de Cinzas a Sábado Santo)
-    // - define Semana Santa, Páscoa (domingo de Páscoa a Pentecostes), Pentecostes (vermelho)
-    // - define Advento (quatro domingos antes do Natal) -> violeta/roxo, com Gaudete (rosa)
-    // - Natal (25/12 a Epifania geralmente até 6/1) -> branco
-    // - Festa de Todos os Fiéis Defuntos (2/11) -> preto/roxo
-    // - Tempo Comum como padrão -> verde
-    // NOTE: cobrir todos casos litúrgicos locais exigiria calendário completo; esse é um bom fallback.
-    // ======================
-    function obterCorPorCalendario(dataISO) {
-      const date = dataISO ? new Date(dataISO) : new Date();
-      const y = date.getFullYear();
-      const pascoa = calcularPascoaGregorian(y);
-      const pascoaTime = pascoa.getTime();
+// CATEQUESE
+function renderizarCatequeseView(){
+    const videosContainer=document.getElementById('videos-container');
+    const videos=[
+        {videoId:'videoseries?si=POFspCvSDSpF1fDb&amp;list=PLHklNC5Otp0GH-kse-kO7fwCz56CaIMHf'},
+        {videoId:'https://youtube.com/playlist?list=PLIzN8slUYnoWz1uJ-ddw6jbRfdEqjyYaI&si=KxNzoNelETlKWrdx'},
+        {videoId:'https://youtube.com/playlist?list=PLxGNjsM-EhKrusGvKShCYqsQkAZOoDwYa&si=fc91ZBa87HxRmth2'}
+    ];
+    videosContainer.innerHTML='';
+    videos.forEach(video=>{videosContainer.innerHTML+=`<div class="video-container"><iframe src="https://www.youtube.com/embed/${video.videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;});
+}
 
-      // datas móveis
-      function addDays(d, days) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days); }
-      const quartaCinzas = addDays(pascoa, -46); // 46 dias antes da Páscoa
-      const domingoRamos = addDays(pascoa, -7);
-      const quintaSanta = addDays(pascoa, -3);
-      const sextaSanta = addDays(pascoa, -2);
-      const sabadoSanto = addDays(pascoa, -1);
-      const pentecostes = addDays(pascoa, 49);
+// CONFIGURAÇÕES
+function renderizarConfiguracoesView(){
+    const configContainer=document.getElementById('config-container');
+    configContainer.innerHTML=`
+    <div class="theme-switch-wrapper">
+        <span>Modo Escuro</span>
+        <label class="theme-switch">
+            <input type="checkbox" id="theme-switch-checkbox">
+            <span class="slider round"></span>
+        </label>
+    </div>`;
+    const themeCheckbox=document.getElementById('theme-switch-checkbox');
+    themeCheckbox.checked=(localStorage.getItem('theme')==='dark');
+    themeCheckbox.addEventListener('change',e=>aplicarTema(e.target.checked?'dark':'light'));
+}
 
-      // Advento: começa no 4º domingo antes do Natal
-      const natal = new Date(y, 11, 25); // 25 dezembro
-      // encontrar o 4º domingo antes do natal:
-      const natalWeekday = natal.getDay(); // 0-6 sun-sat
-      // calcular domingo mais próximo anterior e retroceder 3 semanas -> aproximado
-      const primeiroDomingoAdvento = (function(){
-        // encontra domingo mais próximo antes (ou igual) a 25/12
-        const daysBack = (natalWeekday + 7) % 7;
-        const lastSunday = new Date(natal.getFullYear(), natal.getMonth(), natal.getDate() - daysBack);
-        // 3 domingos antes = lastSunday - 21 dias
-        return new Date(lastSunday.getFullYear(), lastSunday.getMonth(), lastSunday.getDate() - 21);
-      })();
-
-      // datas fixas
-      const allSouls = new Date(y, 10, 2); // 2 nov
-      const corpusChristi = addDays(pascoa, 60); // aproximado (corpus) - geralmente Corpus é depois de Pentecostes
-
-      // helper para comparar só por data (ignora horas)
-      function isSameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
-
-      // check specific dates first
-      if (isSameDay(date, allSouls)) return "preto";
-      // Semana Santa e Pascoa
-      if (date.getTime() >= quartaCinzas.getTime() && date.getTime() < domingoRamos.getTime()) {
-        // Quaresma (exclui Domingo de Ramos)
-        return "roxo";
-      }
-      if (date.getTime() >= domingoRamos.getTime() && date.getTime() <= sabadoSanto.getTime()) {
-        // Semana Santa (cores específicas: Domingo de Ramos vermelho, Tríduo geralmente vermelho, etc.)
-        if (isSameDay(date, domingoRamos)) return "vermelho";
-        if (isSameDay(date, quintaSanta) || isSameDay(date, sextaSanta) || isSameDay(date, sabadoSanto)) return "vermelho";
-        return "roxo";
-      }
-      if (date.getTime() >= pascoaTime && date.getTime() <= pentecostes.getTime()) {
-        // Tempo pascal até Pentecostes -> branco/alegre
-        if (isSameDay(date, pascoa)) return "branco";
-        if (date.getTime() === pentecostes.getTime()) return "vermelho";
-        return "branco";
-      }
-      // Pentecostes (domingo) já tratado como vermelho; corpus e festas de martires -> vermelho se coincidir
-      if (isSameDay(date, pentecostes)) return "vermelho";
-      if (isSameDay(date, corpusChristi)) return "branco";
-
-      // Advento (inclui Gaudete - 3º domingo do Advento, que é rosa)
-      if (date.getTime() >= primeiroDomingoAdvento.getTime() && date.getTime() < natal.getTime()) {
-        // identificar Gaudete: 3º domingo do Advento -> simplificamos: domingo antes de 12/25 - 14 dias?
-        // para simplificação: se estiver na terceira semana do advento (entre primeiroDomingoAdvento +14 e +21)
-        const diffDays = Math.floor((date.getTime() - primeiroDomingoAdvento.getTime()) / (24*3600*1000));
-        if (diffDays >= 14 && diffDays < 21) return "rosa";
-        return "roxo";
-      }
-
-      // Natal e Epifania (25/12 a 6/1)
-      const epifania = new Date(y, 0, 6); // 6 jan (aproximação)
-      if ((date.getMonth() === 11 && date.getDate() >= 25) || (date.getMonth() === 0 && date.getDate() <= 6)) return "branco";
-
-      // default: Tempo Comum -> verde
-      return "verde";
-    }
-
-    // ======================
-    // Verifica preferencia do sistema (modo escuro) e persiste toggle manual
-    // ======================
-    function aplicarTemaModoEscuro(tema) {
-      // tema = 'dark' | 'light' | 'auto'
-      if (tema === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-      } else if (tema === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('theme', 'light');
-      } else {
-        // auto -> remove override to allow CSS @media (prefers-color-scheme) take effect
-        document.documentElement.removeAttribute('data-theme');
-        localStorage.setItem('theme', 'auto');
-      }
-    }
-
-    // inicializa preferencia: sistema ou salvo
-    (function initThemePreference(){
-      const saved = localStorage.getItem('theme') || 'auto';
-      if (saved === 'auto') {
-        // usa preferência do sistema
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-          document.documentElement.setAttribute('data-theme', 'light');
-        }
-      } else {
-        document.documentElement.setAttribute('data-theme', saved);
-      }
-    })();
-
-    // ======================
-    // ÁUDIO (mantive exatamente a lógica que você tinha e integrei)
-    // ======================
-    let synthesis = window.speechSynthesis || null;
-    let currentUtterance = null;
-    let isSpeaking = false;
-
-    function pararAudio() {
-      if (isSpeaking && synthesis && synthesis.speaking) {
-        synthesis.cancel();
-      }
-      isSpeaking = false;
-      const btnAudio = document.getElementById('btn-audio');
-      if (btnAudio) {
-        btnAudio.textContent = '🔊 Ouvir';
-        btnAudio.classList.remove('stopping');
-        btnAudio.style.backgroundColor = '#4CAF50';
-      }
-    }
-
-    function iniciarAudioAcessibilidade() {
-      const btnAudio = document.getElementById('btn-audio');
-      if (!btnAudio) return;
-      if (!synthesis) {
-        btnAudio.style.display = 'none';
-        return;
-      }
-
-      function configurarVoz() {
-        const voices = synthesis.getVoices();
-        const ptVoice = voices.find(v => v.lang && v.lang.includes('pt-BR')) || voices.find(v => v.lang && v.lang.includes('pt')) || voices[0];
-        if (currentUtterance && ptVoice) {
-          currentUtterance.voice = ptVoice;
-        }
-      }
-
-      if (synthesis.getVoices().length === 0) {
-        synthesis.onvoiceschanged = configurarVoz;
-      } else {
-        configurarVoz();
-      }
-
-      function lerPaginaAtual() {
-        const paginaAtualEl = document.querySelector('.pagina:not(.hidden)');
-        if (!paginaAtualEl) return;
-
-        const texto = paginaAtualEl.innerText || paginaAtualEl.textContent;
-        if (!texto || !texto.trim()) return;
-
-        pararAudio();
-        currentUtterance = new SpeechSynthesisUtterance(texto);
-        currentUtterance.lang = 'pt-BR';
-        currentUtterance.rate = 0.92;
-        currentUtterance.pitch = 1;
-        currentUtterance.volume = 1;
-
-        currentUtterance.onstart = () => {
-          isSpeaking = true;
-          btnAudio.textContent = '⏹ Parar';
-          btnAudio.classList.add('stopping');
-          btnAudio.style.backgroundColor = '#f44336';
-        };
-        currentUtterance.onend = () => {
-          isSpeaking = false;
-          btnAudio.textContent = '🔊 Ouvir';
-          btnAudio.classList.remove('stopping');
-          btnAudio.style.backgroundColor = '#4CAF50';
-        };
-        currentUtterance.onerror = (ev) => {
-          console.error('Erro síntese:', ev);
-          isSpeaking = false;
-          btnAudio.textContent = '🔊 Ouvir';
-          btnAudio.classList.remove('stopping');
-          btnAudio.style.backgroundColor = '#4CAF50';
-        };
-
-        synthesis.speak(currentUtterance);
-      }
-
-      btnAudio.addEventListener('click', () => {
-        if (isSpeaking) pararAudio();
-        else lerPaginaAtual();
-      });
-    }
-
-    // ======================
-    // VIEWS e navegação
-    // ======================
-    const mainViews = document.querySelectorAll('main');
-    const rodapeNavItems = document.querySelectorAll('#rodape-nav .nav-item');
-
-    function switchMainView(viewId) {
-      document.querySelectorAll('main').forEach(v => v.classList.add('hidden'));
-      const el = document.getElementById(viewId);
-      if (el) el.classList.remove('hidden');
-      rodapeNavItems.forEach(item => {
-        item.classList.toggle('active', item.dataset.view === viewId);
-      });
-      pararAudio();
-    }
-
-    rodapeNavItems.forEach(item => {
-      item.addEventListener('click', () => {
-        switchMainView(item.dataset.view);
-      });
-    });
-
-    // ======================
-    // RENDERIZAÇÃO DE CATEQUESE
-    // (mantive os vídeos do seu código)
-    // ======================
-    function renderizarCatequeseView() {
-      const videosContainer = document.getElementById('videos-container');
-      const videos = [
-        { videoId: 'PLHklNC5Otp0GH-kse-kO7fwCz56CaIMHf' },
-        { videoId: 'PLIzN8slUYnoWz1uJ-ddw6jbRfdEqjyYaI' },
-        { videoId: 'PLxGNjsM-EhKrusGvKShCYqsQkAZOoDwYa' }
-      ];
-      videosContainer.innerHTML = videos.map(v => `
-        <div class="video-container mb-4" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;">
-          <iframe src="https://www.youtube.com/embed/${v.videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
-        </div>
-      `).join('');
-    }
-
-    // ======================
-    // RENDERIZAÇÃO CONFIGURAÇÕES (inclui toggle de tema)
-    // ======================
-    function renderizarConfiguracoesView() {
-      const configContainer = document.getElementById('config-container');
-      configContainer.innerHTML = `
-        <div class="theme-switch-wrapper flex items-center justify-between max-w-xs mx-auto">
-          <span>Modo Escuro (manual)</span>
-          <label class="theme-switch">
-            <input type="checkbox" id="theme-switch-checkbox" />
-            <span class="slider"></span>
-          </label>
-        </div>
-        <p class="text-sm text-gray-500 mt-3">O modo escuro automático segue a preferência do seu sistema (se suporte disponível). O toggle acima permite forçar Light/Dark.</p>
-      `;
-
-      const chk = document.getElementById('theme-switch-checkbox');
-      // sincroniza com localStorage
-      const saved = localStorage.getItem('theme') || 'auto';
-      chk.checked = (saved === 'dark');
-
-      chk.addEventListener('change', (ev) => {
-        const novo = ev.target.checked ? 'dark' : 'light';
-        aplicarTemaModoEscuro(novo);
-      });
-    }
-
-    // ======================
-    // LÓGICA DA PÁGINA DE LITURGIA (busca API, monta páginas, mantém audio)
-    // ======================
-    async function iniciarAppLiturgia() {
-      const header = document.getElementById('cabecalho');
-      const containerPaginas = document.getElementById('conteudo-paginas');
-      const btnAnterior = document.getElementById('btn-anterior');
-      const btnProximo = document.getElementById('btn-proximo');
-      const contadorPaginaEl = document.getElementById('contador-pagina');
-      const navegacaoEl = document.getElementById('navegacao');
-      const loadingMessage = document.getElementById('loading-message');
-
-      async function buscarLiturgia() {
-        const dateStr = new Date().toISOString().slice(0,10);
-        const url = `https://liturgia.up.railway.app/v2/?date=${dateStr}`;
-        try {
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`API: ${res.status} ${res.statusText}`);
-          const data = await res.json();
-          return data;
-        } catch(e){
-          console.error("Erro API:", e);
-          return null;
-        }
-      }
-
-      const dados = await buscarLiturgia();
-      if (!dados) {
-        loadingMessage.innerHTML = `<p>Não foi possível carregar a liturgia. Verifique sua conexão.</p>`;
-        return;
-      }
-      loadingMessage.style.display = 'none';
-
-      // Determina cor: usa API se vier ou fallback
-      const corDaAPI = dados.cor || null;
-      const corFinal = corDaAPI || obterCorPorCalendario(dados.data);
-      aplicarTemaLiturgico(corFinal);
-
-      // Monta cabeçalho
-      header.innerHTML = `
-        <div class="container-card p-6 liturgic-accent">
-          <h1 class="text-3xl font-bold mb-1">${dados.titulo || "Liturgia Diária"}</h1>
-          <h2 class="text-sm italic mb-2">${dados.data} — <span class="font-semibold">${(corFinal || 'PADRÃO').toUpperCase()}</span></h2>
-          <p class="text-sm text-gray-500">${dados.liturgia || ''}</p>
-        </div>
-      `;
-
-           // Monta páginas como seu código original (Ritos e Leituras)
-      const paginas = (dados.paginas || []).map((pagina, i) => `
-        <div class="pagina ${i !== 0 ? 'hidden' : ''}" data-index="${i}">
-          <h2 class="text-xl font-semibold mb-3">${pagina.titulo || ''}</h2>
-          <div class="prosa text-justify leading-relaxed whitespace-pre-line">${pagina.texto || ''}</div>
-        </div>
-      `);
-      containerPaginas.innerHTML = paginas.join('');
-
-      let paginaAtual = 0;
-      const totalPaginas = paginas.length;
-
-      function atualizarNavegacao() {
-        contadorPaginaEl.textContent = `${paginaAtual + 1} / ${totalPaginas}`;
-        btnAnterior.disabled = paginaAtual === 0;
-        btnProximo.disabled = paginaAtual === totalPaginas - 1;
-        navegacaoEl.classList.remove('hidden');
-      }
-
-      function mostrarPagina(index) {
-        const todas = containerPaginas.querySelectorAll('.pagina');
-        todas.forEach((p, i) => p.classList.toggle('hidden', i !== index));
-        paginaAtual = index;
-        atualizarNavegacao();
-        pararAudio(); // para o áudio ao trocar de página
-      }
-
-      btnAnterior.addEventListener('click', () => {
-        if (paginaAtual > 0) mostrarPagina(paginaAtual - 1);
-      });
-      btnProximo.addEventListener('click', () => {
-        if (paginaAtual < totalPaginas - 1) mostrarPagina(paginaAtual + 1);
-      });
-
-      atualizarNavegacao();
-      iniciarAudioAcessibilidade();
-    }
-
-    // Inicialização global
-    document.addEventListener('DOMContentLoaded', () => {
-      iniciarAppLiturgia();
-      renderizarCatequeseView();
-      renderizarConfiguracoesView();
-    });
-  </script>
+// INICIALIZAÇÃO
+iniciarAppLiturgia();
+renderizarCatequeseView();
+renderizarConfiguracoesView();
+switchMainView('view-liturgia');
+</script>
 </body>
 </html>
