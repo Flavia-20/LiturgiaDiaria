@@ -104,7 +104,7 @@ input:checked + .slider:before { transform:translateX(26px); }
 <main id="view-liturgia">
 <header id="cabecalho"></header>
 
-<!-- ADIÇÃO: seletor de data + botão Buscar (do segundo código) -->
+<!-- ADIÇÃO: seletor de data + botão Buscar -->
 <div class="data-container">
     <label for="data-liturgia">Escolher outra data:</label>
     <input type="date" id="data-liturgia" />
@@ -149,11 +149,11 @@ input:checked + .slider:before { transform:translateX(26px); }
 
 <script>
 // -------------------------------
-// 1) LÓGICA DE CORES LITÚRGICAS (mantida do primeiro código)
+// 1) LÓGICA DE CORES LITÚRGICAS
 // -------------------------------
 function getCorLiturgica(cor){
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    switch(cor.toLowerCase()){
+    switch((cor||'').toLowerCase()){
         case'verde': return isDark ? '#00AA00' : '#007700';
         case'roxo': return isDark ? '#9370DB' : '#4B0082';
         case'branco': return isDark ? '#E8E8E8' : '#DCDCDC';
@@ -234,8 +234,13 @@ function iniciarAudioAcessibilidade(){
     }
 
     // evita múltiplos listeners adicionados em reinicializações
-    btnAudio.replaceWith(btnAudio.cloneNode(true));
-    const novoBtnAudio = document.getElementById('btn-audio') || document.querySelector('#navegacao button[title="Ouvir página atual"]') || document.querySelector('#navegacao button');
+    // substitui o botão por um clone limpo (remove listeners antigos)
+    const existingBtn = document.getElementById('btn-audio');
+    if(existingBtn){
+        const clone = existingBtn.cloneNode(true);
+        existingBtn.parentNode.replaceChild(clone, existingBtn);
+    }
+    const novoBtnAudio = document.getElementById('btn-audio');
     if(novoBtnAudio){
         novoBtnAudio.addEventListener('click', ()=>{
             if(isSpeaking) pararAudio(); else lerPaginaAtual();
@@ -279,15 +284,28 @@ async function iniciarAppLiturgia(){
     const btnBuscar = document.getElementById('btn-buscar');
     const campoData = document.getElementById('data-liturgia');
 
-    // Função de busca: usa o mesmo formato do primeiro código (ISO YYYY-MM-DD via query param)
-    async function buscarLiturgia(dataIso=null){
-        // se dataIso fornecida, espera 'YYYY-MM-DD'
+    // Função de busca: tenta dois formatos.
+    async function buscarLiturgia(dateIso=null, usePathFormat=false){
+        // dateIso esperado: 'YYYY-MM-DD'
         let url;
-        if(dataIso){
-            url = `https://liturgia.up.railway.app/v2/?date=${dataIso}`;
+        if(dateIso){
+            if(usePathFormat){
+                // Segunda versão do código usava /v2/DD-MM-AAAA
+                const partes = dateIso.split('-'); // [YYYY,MM,DD]
+                if(partes.length===3){
+                    const dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`; // DD-MM-YYYY
+                    url = `https://liturgia.up.railway.app/v2/${dataFormatada}`;
+                } else {
+                    url = `https://liturgia.up.railway.app/v2/?date=${dateIso}`;
+                }
+            } else {
+                url = `https://liturgia.up.railway.app/v2/?date=${dateIso}`;
+            }
         } else {
+            // Sem data: usa o formato de query param com a data atual (YYYY-MM-DD)
             url = `https://liturgia.up.railway.app/v2/?date=${new Date().toISOString().slice(0,10)}`;
         }
+
         const loadingMessage=document.getElementById('loading-message');
         try{
             const resp=await fetch(url);
@@ -296,30 +314,36 @@ async function iniciarAppLiturgia(){
             if(loadingMessage) loadingMessage.style.display='none';
             return data;
         }catch(e){
-            console.error(e);
+            console.error('Erro ao buscar liturgia com URL:', url, e);
             if(loadingMessage) loadingMessage.innerHTML=`<p>Não foi possível carregar a liturgia.</p><p><small>${e.message}</small></p>`;
             return null;
         }
     }
 
-    // Evento do botão Buscar (converte input date para ISO)
+    // Evento do botão Buscar (usa o formato de path para máxima compatibilidade)
     if(btnBuscar && campoData){
         btnBuscar.addEventListener('click', async ()=>{
             const val = campoData.value; // formato YYYY-MM-DD
             if(!val) return;
-            // usa o mesmo formato aceito pela API (YYYY-MM-DD como query param)
-            const novos = await buscarLiturgia(val);
-            if(novos) atualizarLiturgia(novos);
+            // tenta primeiro com o formato /v2/DD-MM-AAAA (como no segundo código)
+            const novos = await buscarLiturgia(val, true);
+            if(novos){
+                atualizarLiturgia(novos, val);
+            } else {
+                // fallback: tenta via query param YYYY-MM-DD
+                const fallback = await buscarLiturgia(val, false);
+                if(fallback) atualizarLiturgia(fallback, val);
+            }
         });
     }
 
     // Buscar inicial (hoje)
     const dados = await buscarLiturgia();
     if(!dados) return;
-
     atualizarLiturgia(dados);
 
-    function atualizarLiturgia(dados){
+    // atualizarLiturgia agora pode receber selectedIso para sincronizar o campo de data
+    function atualizarLiturgia(dados, selectedIso=null){
         // guarda cor litúrgica globalmente (para reaplicar ao trocar tema)
         window.corLiturgicaAtual = dados.cor;
         const corLiturgica = getCorLiturgica(dados.cor);
@@ -334,6 +358,7 @@ async function iniciarAppLiturgia(){
 
         header.innerHTML=`<h1>Liturgia Diária</h1><h2>${dados.data} - ${dados.cor}</h2><p><strong>${dados.liturgia}</strong></p><nav id="abas-navegacao"></nav>`;
 
+        // Monta páginas (mesma estrutura do primeiro)
         titulosPaginasHeader.push('Ritos Iniciais');
         paginasHeader.push(`<div class="pagina"><h3>Antífona de Entrada</h3><p>${dados.antifonas.entrada}</p><h3>Oração da Coleta</h3><p>${dados.oracoes.coleta}</p></div>`);
         const pLeitura=dados.leituras.primeiraLeitura[0];
@@ -368,7 +393,7 @@ async function iniciarAppLiturgia(){
             btnProximo.disabled=(paginaAtualHeader===paginasHeader.length-1);
         }
 
-        // evitar múltiplos listeners ao re-renderizar
+        // evita múltiplos listeners ao re-renderizar
         abasContainer.addEventListener('click', e=>{ if(e.target.tagName==='LI'){ paginaAtualHeader=parseInt(e.target.dataset.index); renderizarPagina(); }});
         btnProximo.addEventListener('click', ()=>{ if(paginaAtualHeader<paginasHeader.length-1){ paginaAtualHeader++; renderizarPagina(); }});
         btnAnterior.addEventListener('click', ()=>{ if(paginaAtualHeader>0){ paginaAtualHeader--; renderizarPagina(); }});
@@ -376,6 +401,13 @@ async function iniciarAppLiturgia(){
         montarAbas();
         navegacaoEl.classList.remove('hidden');
         renderizarPagina();
+
+        // Sincroniza o campo de data com a data selecionada (se houver)
+        try{
+            if(selectedIso && document.getElementById('data-liturgia')){
+                document.getElementById('data-liturgia').value = selectedIso;
+            }
+        }catch(e){ /* não crítico */ }
 
         // Inicializa áudio agora que a página existe
         iniciarAudioAcessibilidade();
@@ -396,15 +428,12 @@ function renderizarCatequeseView(){
     videos.forEach(video=>{
         // Ajuste: se videoId contém "http" ou "playlist", usa o embed correto
         let embedId = video.videoId;
-        // Se é full URL de playlist ou query, colocar direto (YouTube embed de playlist aceita ?list=)
         let src;
         if(embedId.startsWith('http')){
-            // tenta extrair list= ou watch?v=
             if(embedId.includes('list=')){
                 const list = embedId.split('list=')[1].split('&')[0];
                 src = `https://www.youtube.com/embed/videoseries?list=${list}`;
             } else {
-                // fallback — coloca como é (provavelmente não ideal)
                 src = embedId;
             }
         } else {
