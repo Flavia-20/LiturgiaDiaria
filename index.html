@@ -36,6 +36,27 @@
             box-sizing: border-box; 
             transition: background-color 0.3s, color 0.3s;
         }
+        .data-container {
+            margin-bottom: 20px;
+        }
+        .data-container input {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .data-container button {
+            padding: 8px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            background-color: var(--cor-primaria);
+            color: white;
+            cursor: pointer;
+        }
+        .data-container button:hover {
+            background-color: #670707;
+        }
 
         main {
             display: flex;
@@ -120,6 +141,11 @@
     
     <main id="view-liturgia">
         <header id="cabecalho"></header>
+          <div class="data-container">
+                <label for="data-liturgia">Escolher outra data:</label>
+                <input type="date" id="data-liturgia" />
+                <button id="btn-buscar">Buscar</button>
+            </div>
         <div id="container-liturgia">
             <div id="conteudo-paginas">
                 <div id="loading-message">Carregando liturgia do dia...</div>
@@ -291,8 +317,6 @@
             }
         }
 
-
-
         // ==============================================
         // 2. GERENCIAMENTO DAS VIEWS PRINCIPAIS
         // ==============================================
@@ -332,97 +356,128 @@
             const contadorPaginaEl = document.getElementById('contador-pagina');
             const navegacaoEl = document.getElementById('navegacao');
 
-            async function buscarLiturgia() {
-                const url = `https://liturgia.up.railway.app/v2/?date=${new Date().toISOString().slice(0, 10)}`;
+            async function buscarLiturgia(dataSelecionada = null) {
+                let url;
+
+                if (dataSelecionada) {
+                    // API usa formato DIA-MÊS-ANO
+                    const partes = dataSelecionada.split("-");
+                    const dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
+                    url = `https://liturgia.up.railway.app/v2/${dataFormatada}`;
+                } else {
+                    const hoje = new Date();
+                    const dia = String(hoje.getDate()).padStart(2, '0');
+                    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+                    const ano = hoje.getFullYear();
+                    url = `https://liturgia.up.railway.app/v2/${dia}-${mes}-${ano}`;
+                }
+
                 const loadingMessage = document.getElementById('loading-message');
                 try {
                     const response = await fetch(url);
                     if (!response.ok) throw new Error(`Erro na API: ${response.statusText}`);
                     const data = await response.json();
-                    loadingMessage.style.display = 'none';
                     return data;
                 } catch (error) {
                     console.error("Falha ao buscar dados da liturgia:", error);
                     loadingMessage.innerHTML = `<p>Não foi possível carregar a liturgia.</p><p><small>${error.message}</small></p>`;
-                    return null;
+                    return error.message;
                 }
             }
-            
-            const dados = await buscarLiturgia();
-            if (!dados) { return; }
 
-            let paginaAtualHeader = 0;
-            const paginasHeader = [];
-            const titulosPaginasHeader = []; 
+            const btnBuscar = document.getElementById('btn-buscar');
+            const campoData = document.getElementById('data-liturgia');
 
-            function formatarTextoComQuebras(texto) { return texto.replace(/\n/g, '<br>'); }
-
-            header.innerHTML = `<h1>Liturgia Diária</h1><h2>${dados.data} - ${dados.cor}</h2><p><strong>${dados.liturgia}</strong></p><nav id="abas-navegacao"></nav>`;
-            
-            // ... (A lógica de montar as páginas da liturgia continua a mesma)
-            titulosPaginasHeader.push('Ritos Iniciais');
-            paginasHeader.push(`<div class="pagina"><h3>Antífona de Entrada</h3><p>${dados.antifonas.entrada}</p><h3>Oração da Coleta</h3><p>${dados.oracoes.coleta}</p></div>`);
-            const pLeitura = dados.leituras.primeiraLeitura[0];
-            titulosPaginasHeader.push('1ª Leitura');
-            paginasHeader.push(`<div class="pagina"><h3>${pLeitura.titulo} (${pLeitura.referencia})</h3><p>${pLeitura.texto}</p></div>`);
-            const salmo = dados.leituras.salmo[0];
-            titulosPaginasHeader.push('Salmo');
-            paginasHeader.push(`<div class="pagina"><h3>Salmo (${salmo.referencia})</h3><p class="refrao-salmo">R.: ${salmo.refrao}</p><p>${formatarTextoComQuebras(salmo.texto)}</p></div>`);
-            if (dados.leituras.segundaLeitura.length > 0) {
-                const sLeitura = dados.leituras.segundaLeitura[0];
-                titulosPaginasHeader.push('2ª Leitura');
-                paginasHeader.push(`<div class="pagina"><h3>${sLeitura.titulo} (${sLeitura.referencia})</h3><p>${sLeitura.texto}</p></div>`);
-            }
-            const evangelho = dados.leituras.evangelho[0];
-            titulosPaginasHeader.push('Evangelho');
-            paginasHeader.push(`<div class="pagina"><h3>${evangelho.titulo} (${evangelho.referencia})</h3><p>${evangelho.texto}</p></div>`);
-            titulosPaginasHeader.push('Ritos Finais');
-            paginasHeader.push(`<div class="pagina"><h3>Oração sobre as Oferendas</h3><p>${dados.oracoes.oferendas}</p><h3>Antífona da Comunhão</h3><p>${dados.antifonas.comunhao}</p><h3>Oração depois da Comunhão</h3><p>${dados.oracoes.comunhao}</p></div>`);
-
-            const abasContainer = document.getElementById('abas-navegacao');
-
-            function montarAbas() {
-                const listaAbasHTML = titulosPaginasHeader.map((titulo, index) => `<li data-index="${index}">${titulo}</li>`).join('');
-                abasContainer.innerHTML = `<ul>${listaAbasHTML}</ul>`;
-            }
-
-            function renderizarPagina() {
-                containerPaginas.innerHTML = paginasHeader.join('');
-                const paginasEls = containerPaginas.querySelectorAll('.pagina');
-                paginasEls.forEach((paginasHeader, index) => {
-                    paginasHeader.classList.toggle('hidden', index !== paginaAtualHeader);
-                });
-                const abasLis = abasContainer.querySelectorAll('li');
-                abasLis.forEach((aba, index) => {
-                    aba.classList.toggle('active', index === paginaAtualHeader);
-                });
-                contadorPaginaEl.textContent = `Página ${paginaAtualHeader + 1} de ${paginasHeader.length}`;
-                btnAnterior.disabled = (paginaAtualHeader === 0);
-                btnProximo.disabled = (paginaAtualHeader === paginasHeader.length - 1);
-            }
-
-            abasContainer.addEventListener('click', (event) => {
-                if (event.target.tagName === 'LI') {
-                    const indexClicado = parseInt(event.target.dataset.index);
-                    if (indexClicado !== paginaAtualHeader) {
-                        paginaAtualHeader = indexClicado;
-                        renderizarPagina();
+            btnBuscar.addEventListener('click', async () => {
+                const dataEscolhida = campoData.value;
+                if (dataEscolhida) {
+                    const novosDados = await buscarLiturgia(dataEscolhida);
+                    if (novosDados) {
+                        // Chama novamente a lógica de renderização
+                        atualizarLiturgia(novosDados);
                     }
                 }
             });
 
-            btnProximo.addEventListener('click', () => {
-                if (paginaAtualHeader < paginasHeader.length - 1) { paginaAtualHeader++; renderizarPagina(); }
-            });
-            btnAnterior.addEventListener('click', () => {
-                if (paginaAtualHeader > 0) { paginaAtualHeader--; renderizarPagina(); }
-            });
+                
+            const dados = await buscarLiturgia();
+            if (!dados) return;
+                atualizarLiturgia(dados);
 
-            montarAbas();
-            navegacaoEl.classList.remove('hidden');
-            renderizarPagina();
+            function atualizarLiturgia(dados) {
+                let paginaAtualHeader = 0;
+                const paginasHeader = [];
+                const titulosPaginasHeader = []; 
+
+                function formatarTextoComQuebras(texto) { return texto.replace(/\n/g, '<br>'); }
+
+                header.innerHTML = `<h1>Liturgia Diária</h1><h2>${dados.data} - ${dados.cor}</h2><p><strong>${dados.liturgia}</strong></p><nav id="abas-navegacao"></nav>`;
+                
+                titulosPaginasHeader.push('Ritos Iniciais');
+                paginasHeader.push(`<div class="pagina"><h3>Antífona de Entrada</h3><p>${dados.antifonas.entrada}</p><h3>Oração da Coleta</h3><p>${dados.oracoes.coleta}</p></div>`);
+                const pLeitura = dados.leituras.primeiraLeitura[0];
+                titulosPaginasHeader.push('1ª Leitura');
+                paginasHeader.push(`<div class="pagina"><h3>${pLeitura.titulo} (${pLeitura.referencia})</h3><p>${pLeitura.texto}</p></div>`);
+                const salmo = dados.leituras.salmo[0];
+                titulosPaginasHeader.push('Salmo');
+                paginasHeader.push(`<div class="pagina"><h3>Salmo (${salmo.referencia})</h3><p class="refrao-salmo">R.: ${salmo.refrao}</p><p>${formatarTextoComQuebras(salmo.texto)}</p></div>`);
+                if (dados.leituras.segundaLeitura.length > 0) {
+                    const sLeitura = dados.leituras.segundaLeitura[0];
+                    titulosPaginasHeader.push('2ª Leitura');
+                    paginasHeader.push(`<div class="pagina"><h3>${sLeitura.titulo} (${sLeitura.referencia})</h3><p>${sLeitura.texto}</p></div>`);
+                }
+                const evangelho = dados.leituras.evangelho[0];
+                titulosPaginasHeader.push('Evangelho');
+                paginasHeader.push(`<div class="pagina"><h3>${evangelho.titulo} (${evangelho.referencia})</h3><p>${evangelho.texto}</p></div>`);
+                titulosPaginasHeader.push('Ritos Finais');
+                paginasHeader.push(`<div class="pagina"><h3>Oração sobre as Oferendas</h3><p>${dados.oracoes.oferendas}</p><h3>Antífona da Comunhão</h3><p>${dados.antifonas.comunhao}</p><h3>Oração depois da Comunhão</h3><p>${dados.oracoes.comunhao}</p></div>`);
+
+                const abasContainer = document.getElementById('abas-navegacao');
+
+                function montarAbas() {
+                    const listaAbasHTML = titulosPaginasHeader.map((titulo, index) => `<li data-index="${index}">${titulo}</li>`).join('');
+                    abasContainer.innerHTML = `<ul>${listaAbasHTML}</ul>`;
+                }
+
+                function renderizarPagina() {
+                    containerPaginas.innerHTML = paginasHeader.join('');
+                    const paginasEls = containerPaginas.querySelectorAll('.pagina');
+                    paginasEls.forEach((paginasHeader, index) => {
+                        paginasHeader.classList.toggle('hidden', index !== paginaAtualHeader);
+                    });
+                    const abasLis = abasContainer.querySelectorAll('li');
+                    abasLis.forEach((aba, index) => {
+                        aba.classList.toggle('active', index === paginaAtualHeader);
+                    });
+                    contadorPaginaEl.textContent = `Página ${paginaAtualHeader + 1} de ${paginasHeader.length}`;
+                    btnAnterior.disabled = (paginaAtualHeader === 0);
+                    btnProximo.disabled = (paginaAtualHeader === paginasHeader.length - 1);
+                }
+
+                abasContainer.addEventListener('click', (event) => {
+                    if (event.target.tagName === 'LI') {
+                        const indexClicado = parseInt(event.target.dataset.index);
+                        if (indexClicado !== paginaAtualHeader) {
+                            paginaAtualHeader = indexClicado;
+                            renderizarPagina();
+                        }
+                    }
+                });
+
+                btnProximo.addEventListener('click', () => {
+                    if (paginaAtualHeader < paginasHeader.length - 1) { paginaAtualHeader++; renderizarPagina(); }
+                });
+                btnAnterior.addEventListener('click', () => {
+                    if (paginaAtualHeader > 0) { paginaAtualHeader--; renderizarPagina(); }
+                });
+
+                montarAbas();
+                navegacaoEl.classList.remove('hidden');
+                renderizarPagina();
+                
+            }
             iniciarAudioAcessibilidade();
-        }
+        }  
 
 
         // ==============================================
