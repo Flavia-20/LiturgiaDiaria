@@ -1,0 +1,343 @@
+:root {
+    --cor-fundo: #f4f4f4;
+    --cor-fundo-container: #fff;
+    --cor-texto-principal: #333;
+    --cor-texto-secundario: #666;
+    --cor-primaria: #8B4513;
+    --cor-borda: #ddd;
+    --cor-sombra: rgba(0, 0, 0, 0.1);
+    --cor-botao-hover: #A0522D;
+}
+
+[data-theme="dark"] {
+    --cor-fundo: #121212;
+    --cor-fundo-container: #1e1e1e;
+    --cor-texto-principal: #e0e0e0;
+    --cor-texto-secundario: #a0a0a0;
+    --cor-primaria: #a05a2c;
+    --cor-borda: #444;
+    --cor-sombra: rgba(0, 0, 0, 0.4);
+    --cor-botao-hover: #d2691e;
+}
+
+body {
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto-principal);
+    font-family: sans-serif;
+    margin: 0;
+    padding: 20px 0 100px 0;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+main.hidden {
+    display: none;
+}
+
+#container-liturgia {
+    background-color: var(--cor-fundo-container);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px var(--cor-sombra);
+    width: 90%;
+    max-width: 800px;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: background-color 0.3s;
+}
+
+.pagina {
+    animation: fadeIn 0.5s;
+}
+
+.pagina.hidden {
+    display: none;
+}
+
+h1,
+h2,
+h3 {
+    color: var(--cor-primaria);
+}
+
+h3 {
+    border-bottom: 1px solid var(--cor-borda);
+    padding-bottom: 5px;
+}
+
+p {
+    line-height: 1.6;
+}
+
+.refrao-salmo {
+    font-style: italic;
+    font-weight: bold;
+    margin-bottom: 1em;
+}
+
+#cabecalho {
+    text-align: center;
+    margin-bottom: 20px;
+    width: 90%;
+    max-width: 800px;
+}
+
+#abas-navegacao {
+    border-bottom: 1px solid var(--cor-borda);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+#abas-navegacao ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#abas-navegacao li {
+    padding: 8px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+    border-bottom: 3px solid transparent;
+}
+
+#abas-navegacao li:hover {
+    background-color: var(--cor-botao-hover);
+    color: white;
+}
+
+#abas-navegacao li.active {
+    font-weight: bold;
+    color: var(--cor-primaria);
+    border-bottom: 3px solid var(--cor-primaria);
+}
+
+#navegacao {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+}
+
+#navegacao button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    color: white;
+    background-color: var(--cor-primaria);
+    transition: background-color 0.2s;
+}
+
+#navegacao button:hover:not(:disabled) {
+    background-color: var(--cor-botao-hover);
+}
+
+#navegacao button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#contador-pagina {
+    font-size: 0.9em;
+    color: var(--cor-texto-secundario);
+}
+
+#loading-message {
+    text-align: center;
+    font-style: italic;
+    color: var(--cor-texto-secundario);
+}
+
+.container-view {
+    background-color: var(--cor-fundo-container);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px var(--cor-sombra);
+    width: 90%;
+    max-width: 800px;
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+    max-width: 100%;
+    background: #000;
+    margin-bottom: 20px;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#rodape-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--cor-fundo-container);
+    box-shadow: 0 -4px 15px var(--cor-sombra);
+    border-top: 1px solid var(--cor-borda);
+}
+
+#rodape-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+#rodape-nav li {
+    cursor: pointer;
+    color: var(--cor-texto-secundario);
+    font-weight: bold;
+    text-align: center;
+    flex-grow: 1;
+    padding: 10px 5px;
+}
+
+#rodape-nav li.active {
+    color: var(--cor-primaria);
+}
+
+.theme-switch-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 250px;
+    margin: 20px auto;
+}
+
+.theme-switch {
+    display: inline-block;
+    height: 34px;
+    position: relative;
+    width: 60px;
+}
+
+.theme-switch input {
+    display: none;
+}
+
+.slider {
+    background-color: #ccc;
+    bottom: 0;
+    cursor: pointer;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    transition: .4s;
+}
+
+.slider:before {
+    background-color: #fff;
+    bottom: 4px;
+    content: "";
+    height: 26px;
+    left: 4px;
+    position: absolute;
+    transition: .4s;
+    width: 26px;
+}
+
+input:checked+.slider {
+    background-color: var(--cor-primaria);
+}
+
+input:checked+.slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+#btn-audio {
+    margin: 0 5px;
+    background-color: #4CAF50;
+}
+
+#btn-audio:hover {
+    background-color: #45a049;
+}
+
+#btn-audio.stopping {
+    background-color: #f44336;
+}
+
+#btn-audio.stopping:hover {
+    background-color: #da190b;
+}
+
+/* Estilos do seletor de data (adicionado do segundo código) */
+.data-container {
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.data-container label {
+    font-weight: 600;
+    color: var(--cor-texto-secundario);
+}
+
+.data-container input[type="date"] {
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid var(--cor-borda);
+    background: var(--cor-fundo-container);
+    color: var(--cor-texto-principal);
+}
+
+.data-container button {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    background-color: var(--cor-primaria);
+    color: white;
+    cursor: pointer;
+}
+
+.data-container button:hover {
+    background-color: var(--cor-botao-hover);
+}

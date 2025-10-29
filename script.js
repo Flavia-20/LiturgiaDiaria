@@ -1,0 +1,321 @@
+// -------------------------------
+// 1) LÓGICA DE CORES LITÚRGICAS
+// -------------------------------
+function getCorLiturgica(cor) {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    switch ((cor || '').toLowerCase()) {
+        case 'verde': return isDark ? '#00AA00' : '#007700';
+        case 'roxo': return isDark ? '#9370DB' : '#4B0082';
+        case 'branco': return isDark ? '#E8E8E8' : '#DCDCDC';
+        case 'vermelho': return isDark ? '#DC143C' : '#B22222';
+        case 'rosa': return isDark ? '#FF69B4' : '#C71585';
+        case 'preto': return isDark ? '#888888' : '#2C2C2C';
+        case 'marrom': return isDark ? '#A0522D' : '#8B4513';
+        default: return isDark ? '#A0522D' : '#8B4513';
+    }
+}
+
+// -------------------------------
+// 2) TEMA (modo claro por padrão; só muda quando o usuário alternar)
+// -------------------------------
+function aplicarTema(tema) {
+    document.documentElement.setAttribute('data-theme', tema);
+    localStorage.setItem('theme', tema);
+    // Reaplica cor litúrgica quando mudar tema
+    const corAtual = window.corLiturgicaAtual;
+    if (corAtual) {
+        const novaCor = getCorLiturgica(corAtual);
+        document.documentElement.style.setProperty('--cor-primaria', novaCor);
+        document.documentElement.style.setProperty('--cor-botao-hover', novaCor);
+    }
+}
+const temaSalvo = localStorage.getItem('theme') || 'light';
+aplicarTema(temaSalvo);
+
+// -------------------------------
+// 3) ÁUDIO (unificado e melhorado — evita referência precoce ao botão)
+// -------------------------------
+let synthesis = window.speechSynthesis || null;
+let currentUtterance = null;
+let isSpeaking = false;
+
+function pararAudio() {
+    if (isSpeaking && synthesis && synthesis.speaking) synthesis.cancel();
+    isSpeaking = false;
+    const btnAudio = document.getElementById('btn-audio');
+    if (btnAudio) { btnAudio.textContent = '🔊 Ouvir'; btnAudio.classList.remove('stopping'); }
+}
+
+function iniciarAudioAcessibilidade() {
+    const btnAudio = document.getElementById('btn-audio');
+    if (!btnAudio) return; // se o botão não existir (safety)
+    if (!synthesis) {
+        // navegador pode não suportar SpeechSynthesis
+        btnAudio.style.display = 'none';
+        return;
+    }
+
+    function configurarVoz() {
+        const voices = synthesis.getVoices();
+        const ptVoice = voices.find(v => v.lang.includes('pt-BR')) || voices.find(v => v.lang.includes('pt')) || voices[0];
+        if (currentUtterance) {
+            currentUtterance.voice = ptVoice;
+            currentUtterance.rate = 0.9;
+            currentUtterance.pitch = 1;
+        }
+    }
+    if (synthesis.getVoices().length === 0) synthesis.onvoiceschanged = configurarVoz; else configurarVoz();
+
+    function lerPaginaAtual() {
+        const paginaAtualEl = document.querySelector('.pagina:not(.hidden)');
+        if (!paginaAtualEl) return;
+        const texto = paginaAtualEl.innerText || paginaAtualEl.textContent;
+        if (!texto.trim()) return;
+        pararAudio();
+        currentUtterance = new SpeechSynthesisUtterance(texto);
+        currentUtterance.lang = 'pt-BR';
+        currentUtterance.rate = 0.9;
+        currentUtterance.pitch = 1;
+        currentUtterance.volume = 1;
+        currentUtterance.onstart = () => { isSpeaking = true; btnAudio.textContent = '⏹ Parar'; btnAudio.classList.add('stopping'); };
+        currentUtterance.onend = () => { isSpeaking = false; btnAudio.textContent = '🔊 Ouvir'; btnAudio.classList.remove('stopping'); };
+        currentUtterance.onerror = () => { isSpeaking = false; btnAudio.textContent = '🔊 Ouvir'; btnAudio.classList.remove('stopping'); };
+        synthesis.speak(currentUtterance);
+    }
+
+    // evita múltiplos listeners adicionados em reinicializações
+    // substitui o botão por um clone limpo (remove listeners antigos)
+    const existingBtn = document.getElementById('btn-audio');
+    if (existingBtn) {
+        const clone = existingBtn.cloneNode(true);
+        existingBtn.parentNode.replaceChild(clone, existingBtn);
+    }
+    const novoBtnAudio = document.getElementById('btn-audio');
+    if (novoBtnAudio) {
+        novoBtnAudio.addEventListener('click', () => {
+            if (isSpeaking) pararAudio(); else lerPaginaAtual();
+        });
+    }
+
+    // Parar audio ao mudar de página
+    const btnAnterior = document.getElementById('btn-anterior');
+    const btnProximo = document.getElementById('btn-proximo');
+    const abasContainer = document.getElementById('abas-navegacao');
+    function pararAudioAoMudarPagina() { pararAudio(); }
+    if (btnAnterior) btnAnterior.addEventListener('click', pararAudioAoMudarPagina);
+    if (btnProximo) btnProximo.addEventListener('click', pararAudioAoMudarPagina);
+    if (abasContainer) abasContainer.addEventListener('click', (e) => { if (e.target.tagName === 'LI') pararAudioAoMudarPagina(); });
+}
+
+// -------------------------------
+// 4) VIEW SWITCH (rodapé)
+// -------------------------------
+const mainViews = document.querySelectorAll('main');
+const rodapeNavItems = document.querySelectorAll('#rodape-nav li');
+function switchMainView(viewId) {
+    mainViews.forEach(v => v.classList.add('hidden'));
+    const el = document.getElementById(viewId);
+    if (el) el.classList.remove('hidden');
+    rodapeNavItems.forEach(i => i.classList.toggle('active', i.dataset.view === viewId));
+    pararAudio();
+}
+rodapeNavItems.forEach(i => i.addEventListener('click', () => switchMainView(i.dataset.view)));
+
+// -------------------------------
+// 5) LÓGICA DA LITURGIA (base do primeiro código) COM ADIÇÃO DO SELETOR DE DATA
+// -------------------------------
+async function iniciarAppLiturgia() {
+    const header = document.getElementById('cabecalho');
+    const containerPaginas = document.getElementById('conteudo-paginas');
+    const btnAnterior = document.getElementById('btn-anterior');
+    const btnProximo = document.getElementById('btn-proximo');
+    const contadorPaginaEl = document.getElementById('contador-pagina');
+    const navegacaoEl = document.getElementById('navegacao');
+    const btnBuscar = document.getElementById('btn-buscar');
+    const campoData = document.getElementById('data-liturgia');
+
+    // Função de busca: tenta dois formatos.
+    async function buscarLiturgia(dateIso = null, usePathFormat = false) {
+        // dateIso esperado: 'YYYY-MM-DD'
+        let url;
+        if (dateIso) {
+            if (usePathFormat) {
+                // Segunda versão do código usava /v2/DD-MM-AAAA
+                const partes = dateIso.split('-'); // [YYYY,MM,DD]
+                if (partes.length === 3) {
+                    const dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`; // DD-MM-YYYY
+                    url = `https://liturgia.up.railway.app/v2/${dataFormatada}`;
+                } else {
+                    url = `https://liturgia.up.railway.app/v2/?date=${dateIso}`;
+                }
+            } else {
+                url = `https://liturgia.up.railway.app/v2/?date=${dateIso}`;
+            }
+        } else {
+            // Sem data: usa o formato de query param com a data atual (YYYY-MM-DD)
+            url = `https://liturgia.up.railway.app/v2/?date=${new Date().toISOString().slice(0, 10)}`;
+        }
+
+        const loadingMessage = document.getElementById('loading-message');
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`Erro na API: ${resp.statusText}`);
+            const data = await resp.json();
+            if (loadingMessage) loadingMessage.style.display = 'none';
+            return data;
+        } catch (e) {
+            console.error('Erro ao buscar liturgia com URL:', url, e);
+            if (loadingMessage) loadingMessage.innerHTML = `<p>Não foi possível carregar a liturgia.</p><p><small>${e.message}</small></p>`;
+            return null;
+        }
+    }
+
+    // Evento do botão Buscar (usa o formato de path para máxima compatibilidade)
+    if (btnBuscar && campoData) {
+        btnBuscar.addEventListener('click', async () => {
+            const val = campoData.value; // formato YYYY-MM-DD
+            if (!val) return;
+            // tenta primeiro com o formato /v2/DD-MM-AAAA (como no segundo código)
+            const novos = await buscarLiturgia(val, true);
+            if (novos) {
+                atualizarLiturgia(novos, val);
+            } else {
+                // fallback: tenta via query param YYYY-MM-DD
+                const fallback = await buscarLiturgia(val, false);
+                if (fallback) atualizarLiturgia(fallback, val);
+            }
+        });
+    }
+
+    // Buscar inicial (hoje)
+    const dados = await buscarLiturgia();
+    if (!dados) return;
+    atualizarLiturgia(dados);
+
+    // atualizarLiturgia agora pode receber selectedIso para sincronizar o campo de data
+    function atualizarLiturgia(dados, selectedIso = null) {
+        // guarda cor litúrgica globalmente (para reaplicar ao trocar tema)
+        window.corLiturgicaAtual = dados.cor;
+        const corLiturgica = getCorLiturgica(dados.cor);
+        document.documentElement.style.setProperty('--cor-primaria', corLiturgica);
+        document.documentElement.style.setProperty('--cor-botao-hover', corLiturgica);
+
+        let paginaAtualHeader = 0;
+        const paginasHeader = [];
+        const titulosPaginasHeader = [];
+
+        function formatarTextoComQuebras(texto) { return texto.replace(/\n/g, '<br>'); }
+
+        header.innerHTML = `<h1>Liturgia Diária</h1><h2>${dados.data} - ${dados.cor}</h2><p><strong>${dados.liturgia}</strong></p><nav id="abas-navegacao"></nav>`;
+
+        // Monta páginas (mesma estrutura do primeiro)
+        titulosPaginasHeader.push('Ritos Iniciais');
+        paginasHeader.push(`<div class="pagina"><h3>Antífona de Entrada</h3><p>${dados.antifonas.entrada}</p><h3>Oração da Coleta</h3><p>${dados.oracoes.coleta}</p></div>`);
+        const pLeitura = dados.leituras.primeiraLeitura[0];
+        titulosPaginasHeader.push('1ª Leitura');
+        paginasHeader.push(`<div class="pagina"><h3>${pLeitura.titulo} (${pLeitura.referencia})</h3><p>${pLeitura.texto}</p></div>`);
+        const salmo = dados.leituras.salmo[0];
+        titulosPaginasHeader.push('Salmo');
+        paginasHeader.push(`<div class="pagina"><h3>Salmo (${salmo.referencia})</h3><p class="refrao-salmo">R.: ${salmo.refrao}</p><p>${formatarTextoComQuebras(salmo.texto)}</p></div>`);
+        if (dados.leituras.segundaLeitura.length > 0) {
+            const sLeitura = dados.leituras.segundaLeitura[0];
+            titulosPaginasHeader.push('2ª Leitura');
+            paginasHeader.push(`<div class="pagina"><h3>${sLeitura.titulo} (${sLeitura.referencia})</h3><p>${sLeitura.texto}</p></div>`);
+        }
+        const evangelho = dados.leituras.evangelho[0];
+        titulosPaginasHeader.push('Evangelho');
+        paginasHeader.push(`<div class="pagina"><h3>${evangelho.titulo} (${evangelho.referencia})</h3><p>${evangelho.texto}</p></div>`);
+        titulosPaginasHeader.push('Ritos Finais');
+        paginasHeader.push(`<div class="pagina"><h3>Oração sobre as Oferendas</h3><p>${dados.oracoes.oferendas}</p><h3>Antífona da Comunhão</h3><p>${dados.antifonas.comunhao}</p><h3>Oração depois da Comunhão</h3><p>${dados.oracoes.comunhao}</p></div>`);
+
+        const abasContainer = document.getElementById('abas-navegacao');
+
+        function montarAbas() { abasContainer.innerHTML = `<ul>${titulosPaginasHeader.map((t, i) => `<li data-index="${i}">${t}</li>`).join('')}</ul>`; }
+
+        function renderizarPagina() {
+            containerPaginas.innerHTML = paginasHeader.join('');
+            const paginasEls = containerPaginas.querySelectorAll('.pagina');
+            paginasEls.forEach((pag, i) => pag.classList.toggle('hidden', i !== paginaAtualHeader));
+            const abasLis = abasContainer.querySelectorAll('li');
+            abasLis.forEach((aba, i) => aba.classList.toggle('active', i === paginaAtualHeader));
+            contadorPaginaEl.textContent = `Página ${paginaAtualHeader + 1} de ${paginasHeader.length}`;
+            btnAnterior.disabled = (paginaAtualHeader === 0);
+            btnProximo.disabled = (paginaAtualHeader === paginasHeader.length - 1);
+        }
+
+        // evita múltiplos listeners ao re-renderizar
+        abasContainer.addEventListener('click', e => { if (e.target.tagName === 'LI') { paginaAtualHeader = parseInt(e.target.dataset.index); renderizarPagina(); } });
+        btnProximo.addEventListener('click', () => { if (paginaAtualHeader < paginasHeader.length - 1) { paginaAtualHeader++; renderizarPagina(); } });
+        btnAnterior.addEventListener('click', () => { if (paginaAtualHeader > 0) { paginaAtualHeader--; renderizarPagina(); } });
+
+        montarAbas();
+        navegacaoEl.classList.remove('hidden');
+        renderizarPagina();
+
+        // Sincroniza o campo de data com a data selecionada (se houver)
+        try {
+            if (selectedIso && document.getElementById('data-liturgia')) {
+                document.getElementById('data-liturgia').value = selectedIso;
+            }
+        } catch (e) { /* não crítico */ }
+
+        // Inicializa áudio agora que a página existe
+        iniciarAudioAcessibilidade();
+    }
+}
+
+// -------------------------------
+// 6) CATEQUESE (mantido do segundo código, com correção de strings de embed)
+// -------------------------------
+function renderizarCatequeseView() {
+    const videosContainer = document.getElementById('videos-container');
+    const videos = [
+        { videoId: 'videoseries?si=POFspCvSDSpF1fDb&amp;list=PLHklNC5Otp0GH-kse-kO7fwCz56CaIMHf' },
+        { videoId: 'https://youtube.com/playlist?list=PLIzN8slUYnoWz1uJ-ddw6jbRfdEqjyYaI&si=KxNzoNelETlKWrdx' },
+        { videoId: 'https://youtube.com/playlist?list=PLxGNjsM-EhKrusGvKShCYqsQkAZOoDwYa&si=fc91ZBa87HxRmth2' }
+    ];
+    videosContainer.innerHTML = '';
+    videos.forEach(video => {
+        // Ajuste: se videoId contém "http" ou "playlist", usa o embed correto
+        let embedId = video.videoId;
+        let src;
+        if (embedId.startsWith('http')) {
+            if (embedId.includes('list=')) {
+                const list = embedId.split('list=')[1].split('&')[0];
+                src = `https://www.youtube.com/embed/videoseries?list=${list}`;
+            } else {
+                src = embedId;
+            }
+        } else {
+            src = `https://www.youtube.com/embed/${embedId}`;
+        }
+        videosContainer.innerHTML += `<div class="video-container"><iframe src="${src}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+    });
+}
+
+// -------------------------------
+// 7) CONFIGURAÇÕES (toggle de tema sincronizado)
+// -------------------------------
+function renderizarConfiguracoesView() {
+    const configContainer = document.getElementById('config-container');
+    configContainer.innerHTML = `
+    <div class="theme-switch-wrapper">
+        <span>Modo Escuro</span>
+        <label class="theme-switch">
+            <input type="checkbox" id="theme-switch-checkbox">
+            <span class="slider round"></span>
+        </label>
+    </div>`;
+    const themeCheckbox = document.getElementById('theme-switch-checkbox');
+    themeCheckbox.checked = (localStorage.getItem('theme') === 'dark');
+    themeCheckbox.addEventListener('change', e => aplicarTema(e.target.checked ? 'dark' : 'light'));
+}
+
+// -------------------------------
+// 8) INICIALIZAÇÃO GERAL
+// -------------------------------
+iniciarAppLiturgia();
+renderizarCatequeseView();
+renderizarConfiguracoesView();
+// Define a view inicial como Liturgia
+switchMainView('view-liturgia');
