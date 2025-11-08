@@ -165,7 +165,7 @@ async function iniciarAppLiturgia() {
             return data;
         } catch (e) {
             console.error('Erro ao buscar liturgia com URL:', url, e);
-            if (loadingMessage) loadingMessage.innerHTML = `<p>Não foi possível carregar a liturgia.</p><p><small>${e.message}</small></p>`;
+            if (loadingMessage) loadingMessage.innerHTML = `<p>Não foi possível carregar a liturgia.</p><p><small>Verifique sua conexão ou tente novamente mais tarde.</small></p>`;
             return null;
         }
     }
