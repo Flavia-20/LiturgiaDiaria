@@ -32,16 +32,6 @@ function aplicarTema(tema) {
 const temaSalvo = localStorage.getItem('theme') || 'light';
 aplicarTema(temaSalvo);
 
-// Simula ambiente sem suporte - descomente para testar o aviso 
-/* 
-
-Object.defineProperty(window, "speechSynthesis", {
-  value: undefined,
-  writable: false
-});
-
-*/
-
 // -------------------------------
 // 3) VERIFICAÇÃO DE COMPATIBILIDADE DE FALA
 // -------------------------------
