@@ -33,79 +33,100 @@ const temaSalvo = localStorage.getItem('theme') || 'light';
 aplicarTema(temaSalvo);
 
 // -------------------------------
-// 3) ÁUDIO (unificado e melhorado — evita referência precoce ao botão)
+// 3) VERIFICAÇÃO DE COMPATIBILIDADE DE FALA
 // -------------------------------
-let synthesis = window.speechSynthesis || null;
-let currentUtterance = null;
-let isSpeaking = false;
 
-function pararAudio() {
-    if (isSpeaking && synthesis && synthesis.speaking) synthesis.cancel();
-    isSpeaking = false;
-    const btnAudio = document.getElementById('btn-audio');
-    if (btnAudio) { btnAudio.textContent = '🔊 Ouvir'; btnAudio.classList.remove('stopping'); }
+// Elementos do aviso de compatibilidade
+const msgCompat = document.getElementById('mensagem-compatibilidade');
+const textoCompat = document.getElementById('texto-compat');
+const btnFecharCompat = document.getElementById('fechar-compat');
+const btnAudio = document.getElementById('btn-audio');
+
+const synthesis = window.speechSynthesis || null;
+
+// Fechar aviso
+btnFecharCompat.onclick = () => msgCompat.classList.add('hidden');
+
+// -------------------------------
+// ÁUDIO
+// -------------------------------
+let utterance = null;
+let falando = false;
+
+function configurarVozDoSistema(u) {
+    const voices = synthesis.getVoices();
+    const voice = voices.find(v => v.lang.includes('pt-BR')) ||
+                  voices.find(v => v.lang.includes('pt')) ||
+                  voices[0];
+    u.voice = voice;
+    u.lang = 'pt-BR';
+    u.rate = 0.92;
+    u.pitch = 1.0;
 }
 
-function iniciarAudioAcessibilidade() {
-    const btnAudio = document.getElementById('btn-audio');
-    if (!btnAudio) return; // se o botão não existir (safety)
+function pararLeitura() {
+    if (falando && synthesis?.speaking) synthesis.cancel();
+    falando = false;
+    btnAudio.textContent = '🔊 Ouvir';
+    btnAudio.classList.remove('stopping');
+}
+
+function lerPagina() {
+    const pagina = document.querySelector('.pagina:not(.hidden)');
+    if (!pagina) return;
+
+    const texto = pagina.innerText.trim();
+    if (!texto) return;
+
+    pararLeitura();
+
+    utterance = new SpeechSynthesisUtterance(texto);
+    configurarVozDoSistema(utterance);
+
+    utterance.onstart = () => {
+        falando = true;
+        btnAudio.textContent = '⏹ Parar';
+        btnAudio.classList.add('stopping');
+    };
+    utterance.onend = pararLeitura;
+    utterance.onerror = pararLeitura;
+
+    synthesis.speak(utterance);
+}
+
+if (synthesis)
+    synthesis.onvoiceschanged = () => utterance && configurarVozDoSistema(utterance);
+
+// -------------------------------
+// BOTÃO DE ÁUDIO (agora com aviso)
+// -------------------------------
+
+btnAudio.onclick = () => {
     if (!synthesis) {
-        // navegador pode não suportar SpeechSynthesis
-        btnAudio.style.display = 'none';
+        textoCompat.textContent = "⚠️ Seu navegador não suporta leitura em voz alta.";
+        msgCompat.classList.remove('hidden');
         return;
     }
 
-    function configurarVoz() {
-        const voices = synthesis.getVoices();
-        const ptVoice = voices.find(v => v.lang.includes('pt-BR')) || voices.find(v => v.lang.includes('pt')) || voices[0];
-        if (currentUtterance) {
-            currentUtterance.voice = ptVoice;
-            currentUtterance.rate = 0.9;
-            currentUtterance.pitch = 1;
-        }
-    }
-    if (synthesis.getVoices().length === 0) synthesis.onvoiceschanged = configurarVoz; else configurarVoz();
+    falando ? pararLeitura() : lerPagina();
+};
 
-    function lerPaginaAtual() {
-        const paginaAtualEl = document.querySelector('.pagina:not(.hidden)');
-        if (!paginaAtualEl) return;
-        const texto = paginaAtualEl.innerText || paginaAtualEl.textContent;
-        if (!texto.trim()) return;
-        pararAudio();
-        currentUtterance = new SpeechSynthesisUtterance(texto);
-        currentUtterance.lang = 'pt-BR';
-        currentUtterance.rate = 0.9;
-        currentUtterance.pitch = 1;
-        currentUtterance.volume = 1;
-        currentUtterance.onstart = () => { isSpeaking = true; btnAudio.textContent = '⏹ Parar'; btnAudio.classList.add('stopping'); };
-        currentUtterance.onend = () => { isSpeaking = false; btnAudio.textContent = '🔊 Ouvir'; btnAudio.classList.remove('stopping'); };
-        currentUtterance.onerror = () => { isSpeaking = false; btnAudio.textContent = '🔊 Ouvir'; btnAudio.classList.remove('stopping'); };
-        synthesis.speak(currentUtterance);
-    }
+// -------------------------------
+// Parar áudio ao navegar
+// -------------------------------
+['btn-anterior', 'btn-proximo'].forEach(id => {
+    const el = document.getElementById(id);
+    el && el.addEventListener('click', pararLeitura);
+});
 
-    // evita múltiplos listeners adicionados em reinicializações
-    // substitui o botão por um clone limpo (remove listeners antigos)
-    const existingBtn = document.getElementById('btn-audio');
-    if (existingBtn) {
-        const clone = existingBtn.cloneNode(true);
-        existingBtn.parentNode.replaceChild(clone, existingBtn);
-    }
-    const novoBtnAudio = document.getElementById('btn-audio');
-    if (novoBtnAudio) {
-        novoBtnAudio.addEventListener('click', () => {
-            if (isSpeaking) pararAudio(); else lerPaginaAtual();
-        });
-    }
+document.getElementById('abas-navegacao')
+    ?.addEventListener('click', e => e.target.tagName === 'LI' && pararLeitura());
 
-    // Parar audio ao mudar de página
-    const btnAnterior = document.getElementById('btn-anterior');
-    const btnProximo = document.getElementById('btn-proximo');
-    const abasContainer = document.getElementById('abas-navegacao');
-    function pararAudioAoMudarPagina() { pararAudio(); }
-    if (btnAnterior) btnAnterior.addEventListener('click', pararAudioAoMudarPagina);
-    if (btnProximo) btnProximo.addEventListener('click', pararAudioAoMudarPagina);
-    if (abasContainer) abasContainer.addEventListener('click', (e) => { if (e.target.tagName === 'LI') pararAudioAoMudarPagina(); });
-}
+document.getElementById('rodape-nav')
+    ?.addEventListener('click', e => e.target.tagName === 'LI' && pararLeitura());
+
+// Função dummy para compatibilidade com o restante do código
+function iniciarAudioAcessibilidade() { return true; }
 
 // -------------------------------
 // 4) VIEW SWITCH (rodapé)
@@ -117,7 +138,7 @@ function switchMainView(viewId) {
     const el = document.getElementById(viewId);
     if (el) el.classList.remove('hidden');
     rodapeNavItems.forEach(i => i.classList.toggle('active', i.dataset.view === viewId));
-    pararAudio();
+    pararLeitura(); 
 }
 rodapeNavItems.forEach(i => i.addEventListener('click', () => switchMainView(i.dataset.view)));
 
