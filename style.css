@@ -158,6 +158,30 @@ p {
     text-align: center;
     font-style: italic;
     color: var(--cor-texto-secundario);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#loading-message::before{
+    position: relative;
+
+    width: 55px;
+    height: 55px;
+    border-radius: 100%;
+    border: 2px solid var(--cor-primaria);
+    border-left-color: #f1f1f1;
+    content: '';
+    animation: spinner 1s infinite linear;
+}
+
+@keyframes spinner {
+    to {
+        transform: rotate(0deg);
+    }
+    from {
+        transform: rotate(-360deg);
+    }
 }
 
 .container-view {
