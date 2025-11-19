@@ -289,33 +289,6 @@ async function iniciarAppLiturgia() {
 // 6) CATEQUESE (mantido do segundo código, com correção de strings de embed)
 //-------------------------------
 
-//Função antiga
-/*function renderizarCatequeseView() {
-    const videosContainer = document.getElementById('videos-container');
-    const videos = [
-        { videoId: 'videoseries?si=POFspCvSDSpF1fDb&amp;list=PLHklNC5Otp0GH-kse-kO7fwCz56CaIMHf' },
-        { videoId: 'https://youtube.com/playlist?list=PLIzN8slUYnoWz1uJ-ddw6jbRfdEqjyYaI&si=KxNzoNelETlKWrdx' },
-        { videoId: 'https://youtube.com/playlist?list=PLxGNjsM-EhKrusGvKShCYqsQkAZOoDwYa&si=fc91ZBa87HxRmth2' }
-    ];
-    videosContainer.innerHTML = '';
-    videos.forEach(video => {
-        // Ajuste: se videoId contém "http" ou "playlist", usa o embed correto
-        let embedId = video.videoId;
-        let src;
-        if (embedId.startsWith('http')) {
-            if (embedId.includes('list=')) {
-                const list = embedId.split('list=')[1].split('&')[0];
-                src = `https://www.youtube.com/embed/videoseries?list=${list}`;
-            } else {
-                src = embedId;
-            }
-        } else {
-            src = `https://www.youtube.com/embed/${embedId}`;
-        }
-        videosContainer.innerHTML += `<div class="video-container"><iframe src="${src}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
-    });
-}*/
-
 // ➜ Função auxiliar: converte "PT1M23S" para segundos
 function parseISODuration(duration) {
     if (!duration) return 0; // se vier null, ignora
