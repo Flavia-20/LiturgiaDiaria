@@ -287,8 +287,10 @@ async function iniciarAppLiturgia() {
 
 // -------------------------------
 // 6) CATEQUESE (mantido do segundo código, com correção de strings de embed)
-// -------------------------------
-function renderizarCatequeseView() {
+//-------------------------------
+
+//Função antiga
+/*function renderizarCatequeseView() {
     const videosContainer = document.getElementById('videos-container');
     const videos = [
         { videoId: 'videoseries?si=POFspCvSDSpF1fDb&amp;list=PLHklNC5Otp0GH-kse-kO7fwCz56CaIMHf' },
@@ -312,7 +314,131 @@ function renderizarCatequeseView() {
         }
         videosContainer.innerHTML += `<div class="video-container"><iframe src="${src}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
     });
+}*/
+
+// ➜ Função auxiliar: converte "PT1M23S" para segundos
+function parseISODuration(duration) {
+    if (!duration) return 0; // se vier null, ignora
+
+    const regex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+    const parts = duration.match(regex);
+
+    if (!parts) return 0; // se falhar o regex, retorna 0
+
+    const hours = parseInt(parts[1] || 0);
+    const minutes = parseInt(parts[2] || 0);
+    const seconds = parseInt(parts[3] || 0);
+
+    return (hours * 3600) + (minutes * 60) + seconds;
 }
+
+
+async function renderizarCatequeseView() {
+    const API_KEY = "AIzaSyBknVW5hUMQ9bmRfskpv4eEiU3_JaMsjeE";
+
+    // ➜ Coloque aqui os 4 IDs dos canais
+    const CHANNELS_IDS = [
+        "UCP6L9TPS3pHccVRiDB_cvqQ",
+        "UCCe8O_s9LIEkNJNzosfw7_A",
+        "UCVUF9JPOd1hvDGawIhfHuGQ",
+        "UCcKzq1UyCeNnzgAE26bwBOw"
+    ];
+
+    const videosContainer = document.getElementById("videos-container");
+    videosContainer.innerHTML = "<p>Carregando vídeos...</p>";
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    let resultadosFinais = [];
+
+    try {
+        for (let channelId of CHANNELS_IDS) {
+
+            // ➜ 1. Buscar uploads playlist do canal
+            const channelRes = await fetch(
+                `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${API_KEY}`
+            );
+            const channelData = await channelRes.json();
+
+            const uploadsPlaylistId =
+                channelData.items[0].contentDetails.relatedPlaylists.uploads;
+
+            // ➜ 2. Buscar os 20 vídeos mais recentes
+            const playlistRes = await fetch(
+                `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=20&key=${API_KEY}`
+            );
+            const playlistData = await playlistRes.json();
+
+            // Lista de videoIds
+            const videoIds = playlistData.items.map(i => i.snippet.resourceId.videoId);
+
+            // ➜ 3. Buscar detalhes dos vídeos (para pegar duração)
+            const videosRes = await fetch(
+                `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoIds.join(",")}&key=${API_KEY}`
+            );
+            const videosInfo = await videosRes.json();
+
+            // ➜ 4. Filtrar Shorts (duração <= 60s)
+            const videosComuns = videosInfo.items.filter(video => {
+                const duration = video.contentDetails.duration;
+                const seconds = parseISODuration(duration);
+                return seconds > 180; // vídeo comum
+            });
+
+            // ➜ 5. Separar vídeos do mês atual
+            const videosDoMes = videosComuns.filter(v => {
+                const d = new Date(v.snippet.publishedAt);
+                return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            });
+
+            let escolhido;
+
+            if (videosDoMes.length > 0) {
+                // pegar o mais recente do mês
+                escolhido = videosDoMes.sort((a, b) =>
+                    new Date(b.snippet.publishedAt) - new Date(a.snippet.publishedAt)
+                )[0];
+            } else {
+                // fallback → pegar o mais recente geral
+                escolhido = videosComuns.sort((a, b) =>
+                    new Date(b.snippet.publishedAt) - new Date(a.snippet.publishedAt)
+                )[0];
+            }
+
+            if (escolhido) resultadosFinais.push(escolhido);
+        }
+
+        // ➜ Renderizar
+        videosContainer.innerHTML = "";
+
+        resultadosFinais.forEach(video => {
+            const videoId = video.id;
+            const embedSrc = `https://www.youtube.com/embed/${videoId}`;
+
+            videosContainer.innerHTML += `
+                <div class="video-container">
+                    <iframe 
+                        src="${embedSrc}"
+                        frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            `;
+        });
+
+    } catch (e) {
+        console.error("Erro:", e);
+        videosContainer.innerHTML = "<p>Erro ao carregar vídeos.</p>";
+    }
+}
+
+
+
+
+
 
 // -------------------------------
 // 7) CONFIGURAÇÕES (toggle de tema sincronizado)
