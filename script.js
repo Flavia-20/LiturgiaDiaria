@@ -307,7 +307,7 @@ function parseISODuration(duration) {
 
 
 async function renderizarCatequeseView() {
-    const API_KEY = "AIzaSyBknVW5hUMQ9bmRfskpv4eEiU3_JaMsjeE";
+    const API_KEY = "API_KEY";
 
     // ➜ Coloque aqui os 4 IDs dos canais
     const CHANNELS_IDS = [
