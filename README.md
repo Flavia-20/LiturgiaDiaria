@@ -118,10 +118,8 @@ A aplicação envia a data no formato **YYYY-MM-DD (ISO)**.
 
 ## 👤 Autor / Contato
 
-- Responsável: adicione aqui seu nome/contatos  
+
 - Tecnologias: HTML, CSS, JS vanilla  
 - API: Railway — Liturgia v2 (data ISO)
 
 ---
-
-> *Dica:* se quiser que eu gere automaticamente um `config.json` e adapte o `script.js` para ler a URL da API de lá (evitando editar código a cada ambiente), me avise que eu já te entrego os dois arquivos 😉
